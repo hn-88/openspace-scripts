@@ -1,0 +1,92 @@
+<html>
+  <head>
+    <title>OpenSpace Control</title>
+    <link rel="stylesheet" type="text/css" href="main.css">
+    <script type="text/javascript" src="openspace-api.js"></script>
+    <script type="text/javascript" src="openspace-default-buttons.js"></script>
+    <script type="text/javascript">
+      //variable for js libarary
+      var openspace = null;
+      
+      var htmlFunction = (action, id) => {
+          var cardHTML = "<div id=\"" + action.title + "\" class='card'><h2>" + action.title + "</h2>";
+          if (action.description) {
+            action.description.split('\n').map(item => {
+              cardHTML += "<p>" + item + "</p>";
+            });
+          }
+          if (action.buttons) {
+            Object.keys(action.buttons).map(button => {
+              const fn = action.buttons[button];
+              cardHTML += "<button id=\"" + action.title+button + "\">"+ button +"</button>";
+            });
+          }
+          cardHTML += "</div>";
+          document.getElementById('main').innerHTML += cardHTML;
+      };
+      var clickFunction = (action, id) => {
+        if (action.buttons) {
+          Object.keys(action.buttons).map(button => {
+              const fn = action.buttons[button];
+              document.getElementById(action.title+button).addEventListener("click", fn);
+          });
+        }
+      }
+      //helper function to map the buttons to html
+      function mapButtons(openspace) {
+        defaultButtonGroups.map(htmlFunction);
+        defaultButtonGroups.map(clickFunction);
+      }
+      //helper function to connect to opensapce
+      var connectToOpenSpace = () => {
+        //setup the api params
+        var host = document.getElementById('ipaddress').value;
+        var api = window.openspaceApi(host, 4682);
+        //notify users on disconnect
+        api.onDisconnect(() => {
+          console.log("disconnected");
+          document.getElementById('container').className = "disconnected";
+          var disconnectedString = "Connect to OpenSpace: ";
+          disconnectedString += '<input id="ipaddress" type=text placeholder="Enter ip address" /> ';
+          disconnectedString += '<button onClick="connectToOpenSpace();">Connect</button>';
+          document.getElementById('connection-status').innerHTML = disconnectedString;
+          openspace = null;
+        });
+        //notify users and map buttons when connected
+        api.onConnect(async () => {
+          try {
+            document.getElementById('container').className = "connected";
+            document.getElementById('connection-status').innerHTML = "Connected to OpenSpace";
+            openspace = await api.library();
+            console.log('connected');
+            mapButtons(openspace);
+          } catch (e) {
+            console.log('OpenSpace library could not be loaded: Error: \n', e)
+            return;
+          }
+        })
+        //connect
+        api.connect();
+      };
+    </script>
+  </head>
+  <body>
+    <!-- HTML Containers -->
+    <div id="container" class="disconnected">
+      <div class="header-container">
+<img width="162" height="72.0" src="https://www.mi-sci.org/wp-content/uploads/2020/06/website-logo-color-no-shadow.png" alt="Michigan Science Center" class="raven-site-logo-mobile" data-no-lazy="1" srcset="https://www.mi-sci.org/wp-content/uploads/2020/06/website-logo-color-no-shadow.png 1x, https://www.mi-sci.org/wp-content/uploads/2020/06/website-logo-color-no-shadow.png 2x">
+        <div id="connection-status" class="connection-status">
+          Connect to OpenSpace:
+          <input id='ipaddress' type=text placeholder="Enter ip address"/> 
+          <button onClick="connectToOpenSpace();">Connect</button>
+        </div>
+      </div>
+      <div id="main">
+
+      </div>
+      <script type="text/javascript">
+        connectToOpenSpace('localhost');
+      </script>
+    </div>
+  <body>
+</html>
