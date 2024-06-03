@@ -1,0 +1,162 @@
+<html>
+	<head>
+		<title>OSREC interpolate</title>
+		<link rel="stylesheet" type="text/css" href="main2.css">
+		<script type="text/javascript" src="openspace-api.js"></script>
+		<script type="text/javascript">
+			//Modified from a script written by
+			//by Jeff Nee at NASA's Museum & Informal Education Alliance at JPL
+			//First commit by Hari Nandakumar: 03 June 2024
+			//created on OpenSpace version 0.20.0RC1
+			
+			//These are variables to customize for your own dome as needed/desired:
+			//wherever your content will be on your local machine
+			
+			
+
+		
+			
+			var programmingButtons = {
+				title: "Programming Buttons",
+				description: "Use this to find your NavState for customized flying sequences",
+				buttons: {
+					// 'Open Initial OSRECTXT File': () => {
+						// creating input on-the-fly
+						// var input = $(document.createElement("input"));
+						// input.attr("type", "file");
+						// add onchange handler if you wish to get the file :)
+						// input.trigger("click"); // opening dialog
+						// return false; // avoiding navigation
+						
+					'Show Nav State': () => {
+						var navState = openspace.navigation.getNavigationState();
+						console.log(navState);
+						document.getElementById(programmingButtons.title).innerHTML += navState;
+						// Using then() to display result
+						navState.then(x => myDisplay(x));
+
+						// Funtion to run when the Promise is settled:
+						function myDisplay(navObj) {
+							document.getElementById(programmingButtons.title).innerHTML = JSON.stringify(navObj);
+						}
+					},
+					'Show Nav State': () => {
+						var navState = openspace.navigation.getNavigationState();
+						console.log(navState);
+						document.getElementById(programmingButtons.title).innerHTML += navState;
+						// Using then() to display result
+						navState.then(x => myDisplay(x));
+
+						// Funtion to run when the Promise is settled:
+						function myDisplay(navObj) {
+							document.getElementById(programmingButtons.title).innerHTML = JSON.stringify(navObj);
+						}
+					},
+				},
+			};
+			
+			var templateButtons = {
+				title: "title_name",
+				description: " ",
+				buttons: {
+					'button1': () => {
+					},
+					'togglebutton1': async () => {
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+							}, duration*1000+100)
+							this.className = '';
+						}
+					},
+				},
+			};
+			
+			var buttonGroups = [programmingButtons];
+			
+			function mapButtons(openspace) {
+				buttonGroups.map((action, id) => {
+					var cardIndex = '';
+					if( id % 2 == 1 ) {
+						cardIndex = "1";
+					}
+					var cardHTML = "<div class='card" + cardIndex +"'><h2>" + action.title + "</h2>";
+					if (action.buttons) {
+						Object.keys(action.buttons).map(button => {
+							const fn = action.buttons[button];
+							cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
+							//add line break after some buttons
+							if (button == 'Pluto Zoom_') {
+								cardHTML += '<br />';
+							}	
+							if (button == '_') {
+								cardHTML += '<hr>';
+							}	
+						});
+					}
+					if (action.description) {
+						action.description.split('\n').map(item => {
+							cardHTML += "<p id='" + action.title + "'>" + item + "</p>";
+						});
+					}					
+					cardHTML += "</div>";
+					document.getElementById('main').innerHTML += cardHTML;
+				})
+			}
+			
+			var connectToOpenSpace = () => {
+				var host = document.getElementById('ipaddress').value;
+				var api = window.openspaceApi(host, 4682);
+				api.onDisconnect(() => {
+					console.log("disconnected");
+					document.getElementById('container').className = "disconnected";
+					var disconnectedString = "Unable to Connect to OpenSpace: ";
+					disconnectedString += '<input id="ipaddress" type=text placeholder="Enter IP address" /> ';
+					disconnectedString += '<button onClick="connectToOpenSpace();">Connect</button>';
+					document.getElementById('connection-status').innerHTML = disconnectedString;
+					openspace = null;
+				});
+				api.onConnect(async () => {
+					try {
+						document.getElementById('container').className = "connected";
+						document.getElementById('connection-status').innerHTML = "Connected to OpenSpace";
+						openspace = await api.library();
+						console.log('connected');
+						//wipe the page first before building the buttons
+						document.getElementById('main').innerHTML = '';
+						mapButtons(openspace);
+					} catch (e) {
+						console.log('OpenSpace library could not be loaded: Error: \n', e)
+						return;
+					}
+				})
+				api.connect();
+			};
+		</script>
+	</head>
+	<body>
+		<div id="container" class="disconnected">
+			<div id="connection-status" class="connection-status">
+				Connect to OpenSpace:
+				<input id='ipaddress' type=text placeholder="Enter IP address" />
+				<button onClick="connectToOpenSpace();">Connect</button>
+			</div>\
+			<h1>OSRECTXT interpolate</h1>
+			<div> <label for="inputId">file dialog</label>
+			<input id="inputId" type="file" name="Choose OSRECTXT file">
+			</div>
+			<div id="main">
+			</div>
+			<script type="text/javascript">
+				connectToOpenSpace('localhost');
+			</script>
+
+			
+
+			<p>More scripts are available <a href='https://github.com/hn-88/openspace-scripts/' target='_blank' >on github</a>.</p>
+		</div>
+	</body>
+</html>
