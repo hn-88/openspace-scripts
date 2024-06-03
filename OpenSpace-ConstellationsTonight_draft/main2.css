@@ -1,0 +1,122 @@
+html {
+  background-color: #000;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image: url("background.jpg");
+  /* https://svs.gsfc.nasa.gov/4851 */
+}
+
+code {
+  font-family: monospace;
+}
+
+input[type=text] {
+    padding:5px;
+    border:1px solid #ccc;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+}
+
+input[type=text]:focus {
+    border-color:#333;
+}
+
+.connection-status {
+  transition: all 0.5s;
+  height: 30px;
+  width: calc(100% - 1em);
+  padding: 0.5em;
+}
+
+div.disconnected .connection-status {
+  background-color: #800;
+  color: #fee;
+}
+
+div.connected .connection-status {
+  background-color: #61559A; /*#080*/
+  color: #efe;
+}
+
+.card {
+  background-color: #111;
+  margin: 1em;
+  padding: 0.5em;
+  color: #eee;
+  opacity: 0.97;
+}
+
+.card1 {
+  background-color: #333;
+  margin: 1em;
+  padding: 0.5em;
+  color: #eee;
+  opacity: 0.97;
+}
+
+button {
+  transition: all 0.5s;
+  border-radius: 0.2em;
+  background-color: #990000;/*#080*/
+  color: black;
+  border: none;
+  padding: 0.5em;
+  color: #fff;
+  margin-right: 0.2em;
+  margin-bottom: 0.2em;
+  font-family: monospace;
+}
+
+.clicked {
+	background-color: #61559A;
+	/*background-color: #FC0fC0;*/
+	color: white;
+}
+
+div.disconnected button {
+  background-color: #777;
+}
+
+div.disconnected button:hover {
+  background-color: #777;
+}
+
+h1 {
+	color: #ffffff;
+}
+
+a {
+	color: #ffff00;
+}
+
+p {
+	color: #ffffff;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+button:hover {
+	border-radius: 20px;
+	cursor:pointer;
+}  
+
+button:active {
+  background-color: #fef;
+}  
+.ButtonRed {
+  background-color: #500;
+  color: white;
+}
+
+.ButtonGreen {
+  background-color: FFBF00;
+  color: black;
+}

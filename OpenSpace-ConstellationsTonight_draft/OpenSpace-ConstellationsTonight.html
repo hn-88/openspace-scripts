@@ -1,0 +1,1714 @@
+<html>
+	<head>
+		<title>OpenSpace Constellations Tonight</title>
+		<link rel="stylesheet" type="text/css" href="main2.css">
+		<script type="text/javascript" src="openspace-api.js"></script>
+		<script type="text/javascript">
+			//by Jeff Nee at NASA's Museum & Informal Education Alliance at JPL
+			//Last updated: May 2024
+			//created on OpenSpace version 0.19.2
+			
+			//These are variables to customize for your own dome as needed/desired:
+			//wherever your content will be on your local machine
+			var contentPath = "C:/Users/SSSVV/Downloads/OpenSpace-ConstellationsTonight_draft/";
+			//default duration for fades:
+			const duration = 1;			
+			//Note this is the default tilt for the single fisheye config for OpenSpace
+			var defaultTilt =27;
+			//Your coordinates, default is set to JPL in Pasadena, CA
+			var defaultLatitude = 34.1983;
+			var defaultLongitude = -118.1753;
+			var defaultAltitude = 500;
+			//openspace.globebrowsing.goToGeo('Earth',34.1983,-118.1753,1000)
+			//This was eyeballed by the position of Polaris then using the "Show Nav State" button
+			var lookUpPitch = 2.0425456185375848;
+			var lookUpUp = [-0.25832485826551366,-0.49922160959589273,-0.8270707660863061];
+			var lookUpYaw = 0.0018312094802227185;
+			var lowPosition = [-2491056.5456290348,-4650613.762704544,3585169.2978792596];
+			var highPosition = [-2529914.3964139516,-4723158.425440807,3641094.152005422];
+			var defaultNavigationState = {
+				Anchor:'Earth',
+				Pitch:lookUpPitch,
+				Position:lowPosition,
+				Up:lookUpUp,
+				Yaw:lookUpYaw,
+			};
+			var inSpaceNavigationState = {
+				Anchor:'Earth',
+				Pitch:lookUpPitch,
+				Position:highPosition,
+				Up:lookUpUp,
+				Yaw:lookUpYaw,
+			};			
+
+
+			//These are functional variables that are needed for the interface to work
+			//resetting the openspace interface:
+			var openspace = null;
+			//array to keep track of loaded images
+			var saveImages=[];	
+			//a simple check that presenter wants multiple constellations or only one at a time
+			var multipleConstellations = 1;
+			//array to save constellations for quick remembering, initialize as empty, which will show all by default
+			var saveConstellations = [];
+			async function hideAllTrails() {
+				
+				openspace.setPropertyValue("Scene.*Trail.Renderable.Opacity", 0, 1)
+				openspace.setPropertyValueSingle("Scene.ISS_trail.Renderable.Fade",0,1)
+				setTimeout(() => {
+					openspace.setPropertyValue("Scene.*Trail.Renderable.Enabled", false)
+				}, duration * 1000)
+			}
+			
+			async function showAllTrails() {
+				openspace.setPropertyValue("Scene.*Trail.Renderable.Opacity", 0, duration/10)
+				setTimeout(() => {
+					openspace.setPropertyValue("Scene.*Trail.Renderable.Enabled", true)
+					openspace.setPropertyValue("Scene.*Trail.Renderable.Opacity", 1, duration)
+					openspace.setPropertyValueSingle("Scene.ISS_trail.Renderable.Enabled", true)
+					openspace.setPropertyValueSingle("Scene.ISS_trail.Renderable.Fade",1,duration)
+				}, duration*100)
+			}
+			
+			function EarthAtmosphereToggle(clickedOrNot) {
+				if (clickedOrNot != 'clicked') { 
+					openspace.setPropertyValueSingle("Scene.EarthAtmosphere.Renderable.Fade",0,duration)
+					setTimeout(() => {
+						openspace.setPropertyValueSingle("Scene.EarthAtmosphere.Renderable.Enabled", false)
+					}, duration*1000)
+					clickedOrNot = 'clicked';
+				} else {
+					setTimeout(() => {						
+						openspace.setPropertyValueSingle("Scene.EarthAtmosphere.Renderable.Enabled", true)
+						openspace.setPropertyValueSingle("Scene.EarthAtmosphere.Renderable.Fade",1,duration)
+					}, duration*100)		
+					clickedOrNot = '';							
+				}
+				return clickedOrNot;						
+			}
+
+			var setFocus = (focus) => {
+				openspace.setPropertyValue('NavigationHandler.OrbitalNavigator.Anchor', focus);
+				openspace.setPropertyValue('NavigationHandler.OrbitalNavigator.RetargetAnchor', null);
+			}
+			
+			var setupButtons = {
+				title: "Setup Buttons",
+				description: " ",
+				buttons: {
+					'Setup': () => {
+						openspace.setPropertyValueSingle('Modules.Video.Enabled', true)
+						document.getElementById('Turn on Earth Texture').click();
+						document.getElementById('Turn on Mars Texture').click();
+						document.getElementById('Jump to JPL').click();
+						setTimeout(() => {	
+							document.getElementById('Hide Trails').click();
+							//document.getElementById('Hide Earth').click();
+							//color these buttons
+							document.getElementById('Show Trails').className = 'clicked';
+							document.getElementById('Show Earth').className = 'clicked';
+						}, 1100)
+						document.getElementById('Jump to JPL').click();
+					},
+					'Turn on Earth Texture': () => {
+						//Turning on Blue Marble Earth Layer:
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Blue_Marble.Fade',0, 1)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Blue_Marble.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Blue_Marble.Fade',1,1)
+						//Turning on Earth at Night Layer:
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.NightLayers.Earth_Night_Texture.Fade',0, 1)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.NightLayers.Earth_Night_Texture.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.NightLayers.Earth_Night_Texture.Fade',1,1)
+						//Turning on ESRI NOAA
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.ESRI_NOAA20_Combo.Fade',0)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.ESRI_NOAA20_Combo.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.ESRI_NOAA20_Combo.Fade',1,1)
+						//Turning on VIIRS layer
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.VIIRS_SNPP_Temporal.Fade',0)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.VIIRS_SNPP_Temporal.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.VIIRS_SNPP_Temporal.Fade',1,1)
+
+						//Turning on the Earth:
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Opacity', 0, 0.1)
+						openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 0, 1)
+						setTimeout(() => {	
+							//SunIntensity is 6.9 by default
+							openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 6.9, 1)
+							openspace.setPropertyValueSingle('Scene.Earth.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.Earth.Renderable.Opacity', 1, 1)
+						},100)
+					},
+					'Focus on the Earth': () => {setFocus('Earth')
+					},
+					'Turn on Mars Texture': () => {
+						openspace.setPropertyValueSingle('Scene.Mars.Renderable.Layers.ColorLayers.Mars_Texture.Fade',0)
+						openspace.setPropertyValueSingle('Scene.Mars.Renderable.Layers.ColorLayers.Mars_Texture.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.Mars.Renderable.Layers.ColorLayers.Mars_Texture.Fade',1,1)
+					},
+					'Hide Trails': () => {
+						hideAllTrails();
+					},
+					'Show Trails': () => {
+						showAllTrails();
+					},
+					'Hide Earth': () => {
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Opacity', 0, 2)
+						openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 0, 1)
+					},
+					'Show Earth': () => {
+						openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 6.9, 1)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Opacity', 1, 2)
+					},
+					'Earth Atmosphere': async () => {
+						this.className = EarthAtmosphereToggle(this.className);
+					},
+					'Jump to JPL': () => {
+						openspace.setPropertyValueSingle('RenderEngine.BlackoutFactor',0,2)
+						setTimeout(() => {
+							//stopping time
+							openspace.time.interpolateTogglePause()
+							//coordinates to customize
+							openspace.globebrowsing.goToGeo('Earth',defaultLatitude,defaultLongitude,defaultAltitude)
+							openspace.navigation.setNavigationState(defaultNavigationState)
+							openspace.setPropertyValueSingle('RenderEngine.BlackoutFactor',1,2)
+						}, 2100)
+					},			
+				},
+			};
+			var timeButtons = {
+				//One day create time control buttons, but for now OpenSpace has good realtime time controls.
+				title: "Time Control",
+				description: " ",
+				buttons: {
+					'button1': () => {
+					},
+					'togglebutton1': async () => {
+						
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+							}, duration*1000+100)
+							this.className = '';
+						}
+					},
+				},
+			};			
+			var planetZoomButtons = {
+				title: "Zoom Planets from Earth",
+				description: " ",
+				buttons: {
+					//add extra space to match with Label buttons on the next row
+					'Mercury Zoom_': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Mercury.Scale.Scale', 2000, 1)
+							openspace.setPropertyValueSingle('Scene.Mercury.Renderable.PerformShading', false)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Mercury.Scale.Scale', 1, 1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Mercury.Renderable.PerformShading', true)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Venus Zoom_': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Venus.Scale.Scale', 2000, 1)
+							openspace.setPropertyValueSingle('Scene.Venus.Renderable.PerformShading', false)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Venus.Scale.Scale', 1, 1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Venus.Renderable.PerformShading', true)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Mars Zoom_': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Mars.Scale.Scale', 2000, 1)
+							openspace.setPropertyValueSingle('Scene.Mars.Renderable.PerformShading', false)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Mars.Scale.Scale', 1, 1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Mars.Renderable.PerformShading', true)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Jupiter Zoom_': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Jupiter.Scale.Scale', 2000, 1)
+							openspace.setPropertyValueSingle('Scene.Jupiter.Renderable.PerformShading', false)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Jupiter.Scale.Scale', 1, 1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Jupiter.Renderable.PerformShading', true)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Saturn Zoom_': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Saturn.Scale.Scale', 2000, 1)
+							openspace.setPropertyValueSingle('Scene.Saturn.Renderable.PerformShading', false)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Saturn.Scale.Scale', 1, 1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Saturn.Renderable.PerformShading', true)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Uranus Zoom_': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Uranus.Scale.Scale', 2000, 1)
+							openspace.setPropertyValueSingle('Scene.Uranus.Renderable.PerformShading', false)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Uranus.Scale.Scale', 1, 1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Uranus.Renderable.PerformShading', true)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Neptune Zoom_': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Neptune.Scale.Scale', 2000, 1)
+							openspace.setPropertyValueSingle('Scene.Neptune.Renderable.PerformShading', false)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Neptune.Scale.Scale', 1, 1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Neptune.Renderable.PerformShading', true)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Pluto Zoom_': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Pluto.Scale.Scale', 50000, 1)
+							openspace.setPropertyValueSingle('Scene.Pluto.Renderable.PerformShading', false)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Pluto.Scale.Scale', 1, 1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Pluto.Renderable.PerformShading', true)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Mercury Label': async () => {
+						openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.OrientationOption', 1.000000)
+						openspace.setPropertyValueSingle('Scene.MercuryLabel.Translation.Position', [0.000000,0.000000,2e6])
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.Fade',1,1)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Venus Label': async () => {
+						openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.OrientationOption', 1.000000)
+						openspace.setPropertyValueSingle('Scene.VenusLabel.Translation.Position', [0.000000,0.000000,2e6])
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.Fade',1,1)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Mars Label': async () => {
+						openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.OrientationOption', 1.000000)
+						openspace.setPropertyValueSingle('Scene.MarsLabel.Translation.Position', [0.000000,0.000000,2e6])
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.Fade',1,1)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Jupiter Label': async () => {
+						openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.OrientationOption', 1.000000)
+						openspace.setPropertyValueSingle('Scene.JupiterLabel.Translation.Position', [0.000000,0.000000,8e7])
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.Fade',1,1)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Saturn Label': async () => {
+						openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.OrientationOption', 1.000000)
+						openspace.setPropertyValueSingle('Scene.SaturnLabel.Translation.Position', [0.000000,0.000000,5e7])
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.Fade',1,1)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Uranus Label': async () => {
+						openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.Size', 9.5)
+						openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.OrientationOption', 1.000000)
+						openspace.setPropertyValueSingle('Scene.UranusLabel.Translation.Position', [0.000000,0.000000,6e7])
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.Fade',1,1)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Neptune Label': async () => {
+						openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.Size', 9.5)
+						openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.OrientationOption', 1.000000)
+						openspace.setPropertyValueSingle('Scene.NeptuneLabel.Translation.Position', [0.000000,0.000000,5e7])
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.Fade',1,1)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Pluto Label': async () => {
+						openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.OrientationOption', 1.000000)
+						openspace.setPropertyValueSingle('Scene.PlutoLabel.Translation.Position', [0.000000,0.000000,-4e6])
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.Fade',1,1)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+				},
+			};
+
+			
+			var bigDipperButtons = {
+				title: "Big Dipper",
+				description: " ",
+				buttons: {
+					'Light Pollution': async () => {
+						//animating light polution.  Change max and interval as desired
+						var lightPollutionMin = 1;
+						var lightPollutionMax = 9;
+						var lightPollutionInterval = 150; //in milliseconds
+						if (this.className != 'clicked') { 
+							var i=lightPollutionMin;							
+							var lightPollutionAnimation = setInterval(() => {
+								openspace.action.triggerAction('os.nightsky.SetLightPollutionLevel'+i)
+								if (i >= lightPollutionMax) {
+									clearInterval(lightPollutionAnimation)
+								}
+								i++;
+							},lightPollutionInterval)
+							this.className = 'clicked';
+						} else {
+							var i=lightPollutionMax;							
+							var lightPollutionAnimation = setInterval(() => {
+								openspace.action.triggerAction('os.nightsky.SetLightPollutionLevel'+i)
+								if (i <= lightPollutionMin) {
+									clearInterval(lightPollutionAnimation)
+								}
+								i--;
+							},lightPollutionInterval)
+							setTimeout(() => {
+								openspace.action.triggerAction('os.nightsky.UndoLightPollution')
+							},lightPollutionInterval*lightPollutionMax)
+							this.className = '';
+						}						
+					},
+					'Ursa Major Stick': async () => {
+						if (this.className != 'clicked') { 
+							openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Fade',0,0.1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.ConstellationSelection', ['Ursa Major'])
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', true)
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Fade',1,duration)
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Fade',0,duration)								
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.ConstellationSelection', [])
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', false)							
+							}, duration*1000+100)
+							this.className = '';
+						}
+					},
+					'Ursa Major Image': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.Fade',1,duration)
+							//default white, but you can customize RGB fractions, note that the {} turns into [] here:
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.MultiplyColor', [1,1,1])
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.Fade',0,duration)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.Enabled', false)
+							}, duration*1000+100)
+							this.className = '';
+						}
+					},
+					'Polaris Marker': async () => {
+						var PolarisMarkerObject = { 
+							Identifier: 'PolarisMarker', 
+							Name: 'PolarisMarker', 
+							Type: 'ScreenSpaceImageLocal', 
+							TexturePath: contentPath+'PolarisMarker.png',
+						};
+						if (this.className != 'clicked') {
+							//remove it first because it will cause problems otherwise.
+							openspace.removeScreenSpaceRenderable(PolarisMarkerObject)
+							openspace.addScreenSpaceRenderable(PolarisMarkerObject)
+							saveImages.push(PolarisMarkerObject);
+							openspace.setPropertyValueSingle('ScreenSpace.PolarisMarker.Scale',0,0)
+							openspace.setPropertyValueSingle('ScreenSpace.PolarisMarker.UseRadiusAzimuthElevation', true)
+							//coordinates from JPL, ~34 degrees N Latitude
+							//note it's in radians!
+							openspace.setPropertyValueSingle('ScreenSpace.PolarisMarker.RadiusAzimuthElevation', [15,3.1415928,3.1415928*(defaultTilt+defaultLatitude)/180])
+							setTimeout (() => {
+								openspace.setPropertyValueSingle('ScreenSpace.PolarisMarker.Scale',1,duration)
+							},100)
+							if (saveImages.indexOf('PolarisMarker') < 0) {
+								//If not then add it
+								saveImages.push('PolarisMarker');
+							}		
+							this.className = 'clicked';
+						} else {
+							//disable the button to prevent problems
+							this.disabled = true;
+							openspace.setPropertyValueSingle('ScreenSpace.PolarisMarker.Scale',0,duration)
+							setTimeout(() => {
+								openspace.removeScreenSpaceRenderable(PolarisMarkerObject)
+								//remove this from the array
+								var index = saveImages.indexOf('PolarisMarker');
+								if (index > -1) {
+									//If yes, then remove it
+									saveImages.splice(index, 1);
+								}
+								//enable button after the delay
+								this.disabled = false;
+								this.className = '';
+							},duration*1000)
+						}
+					},
+					'Cardinal Directions': async () => {
+						if (this.className != 'clicked') {
+							openspace.action.triggerAction('os.nightsky.ShowNeswLettersSmall')
+							openspace.fadeIn('Scene.CardinalDirectionSphere.Renderable')
+							this.className = 'clicked';
+						} else {
+							openspace.action.triggerAction('os.nightsky.HideNesw')
+							openspace.fadeOut('Scene.CardinalDirectionSphere.Renderable')
+							this.className = '';
+						}
+					},
+					//Cardinal Directions won't work above the atmosphere
+					'Above Atmosphere': () => {
+						//stopping time
+						openspace.time.interpolateTogglePause()
+						//coordinates to customize
+						openspace.navigation.setNavigationState(inSpaceNavigationState)
+					},		
+				},
+			};
+			
+			var allConstellationButtons = {
+				title: "All Constellations",
+				description: " ",
+				buttons: {
+					'Sticks': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Fade',0,0.1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.ConstellationSelection', [])
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', true)
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Fade',1,1)
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Bounds': async () => {
+						if (this.className != 'clicked') { 
+							openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Fade',0,0.1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Enabled', true)
+								openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Fade',1,1)
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Fade',0,1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Enabled', false)
+							}, 1100)
+							this.className = '';
+						}
+					},
+					'Art': async () => {
+						//for easier adjustments, change here:
+						
+						const opacity = 1;
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-And.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ant.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Aps.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Aqr.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Aql.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ara.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ari.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Aur.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Boo.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cae.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cam.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cnc.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CVn.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CMa.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CMi.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cap.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Car.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cas.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cen.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cep.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cet.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cir.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Col.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Com.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CrA.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CrB.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Crv.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Crt.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cru.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cyg.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Del.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Dor.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Dra.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Equ.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Eri.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-For.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Gem.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Gru.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Her.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Hor.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Hya.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Hyi.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ind.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lac.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Leo.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-LMi.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lep.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lib.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lup.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lyn.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lyr.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Men.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Mic.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Mon.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Mus.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Nor.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Oct.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Oph.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ori.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Pav.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Peg.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Per.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Phe.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Pic.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Psc.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-PsA.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Pyx.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sge.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sgr.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sco.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Scl.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sct.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sex.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Tau.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-TrA.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Tel.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Tri.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Tuc.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-UMi.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Vir.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Vol.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Vul.Renderable.Enabled', true)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-And.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ant.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Aps.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Aqr.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Aql.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ara.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ari.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Aur.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Boo.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cae.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cam.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cnc.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CVn.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CMa.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CMi.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cap.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Car.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cas.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cen.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cep.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cet.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cir.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Col.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Com.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CrA.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CrB.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Crv.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Crt.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cru.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cyg.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Del.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Dor.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Dra.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Equ.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Eri.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-For.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Gem.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Gru.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Her.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Hor.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Hya.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Hyi.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ind.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lac.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Leo.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-LMi.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lep.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lib.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lup.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lyn.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lyr.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Men.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Mic.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Mon.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Mus.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Nor.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Oct.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Oph.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ori.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Pav.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Peg.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Per.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Phe.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Pic.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Psc.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-PsA.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Pyx.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ret.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sge.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sgr.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sco.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Scl.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sct.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sex.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Tau.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-TrA.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Tel.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Tri.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Tuc.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-UMi.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Vir.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Vol.Renderable.Fade',opacity,duration)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Vul.Renderable.Fade',opacity,duration)
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-And.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ant.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Aps.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Aqr.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Aql.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ara.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ari.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Aur.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Boo.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cae.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cam.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cnc.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CVn.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CMa.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CMi.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cap.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Car.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cas.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cen.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cep.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cet.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cir.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Col.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Com.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CrA.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-CrB.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Crv.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Crt.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cru.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Cyg.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Del.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Dor.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Dra.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Equ.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Eri.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-For.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Gem.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Gru.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Her.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Hor.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Hya.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Hyi.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ind.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lac.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Leo.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-LMi.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lep.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lib.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lup.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lyn.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Lyr.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Men.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Mic.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Mon.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Mus.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Nor.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Oct.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Oph.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ori.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Pav.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Peg.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Per.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Phe.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Pic.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Psc.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-PsA.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Pyx.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Ret.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sge.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sgr.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sco.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Scl.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sct.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Sex.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Tau.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-TrA.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Tel.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Tri.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Tuc.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.Fade',0,duration)	
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-UMi.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Vir.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Vol.Renderable.Fade',0,duration)
+							openspace.setPropertyValueSingle('Scene.ImageConstellation-Vul.Renderable.Fade',0,duration)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-And.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ant.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Aps.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Aqr.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Aql.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ara.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ari.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Aur.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Boo.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cae.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cam.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cnc.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CVn.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CMa.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CMi.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cap.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Car.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cas.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cen.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cep.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cet.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cir.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Col.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Com.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CrA.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-CrB.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Crv.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Crt.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cru.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Cyg.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Del.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Dor.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Dra.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Equ.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Eri.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-For.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Gem.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Gru.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Her.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Hor.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Hya.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Hyi.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ind.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lac.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Leo.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-LMi.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lep.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lib.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lup.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lyn.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Lyr.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Men.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Mic.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Mon.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Mus.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Nor.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Oct.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Oph.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Ori.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Pav.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Peg.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Per.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Phe.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Pic.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Psc.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-PsA.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Pyx.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sge.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sgr.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sco.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Scl.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sct.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Sex.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Tau.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-TrA.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Tel.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Tri.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Tuc.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Uma.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-UMi.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Vir.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Vol.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ImageConstellation-Vul.Renderable.Enabled', false)
+							}, duration*1000+100)
+								this.className = '';
+						}
+					},
+					
+					'Labels': async () => {
+						
+						const opacity =1;
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Opacity',0,0.1)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.ConstellationSelection', [])
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.DrawElements', false)
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', true)
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Enabled', true)
+								setTimeout(() => {
+									openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Opacity',opacity,duration)
+								}, 100)
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Opacity',0,duration)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', false)
+							}, duration*1000+100)
+							this.className = '';
+						}
+					},
+					'Focus on the Earth': () => {setFocus('Earth')
+					},
+				},
+			};
+
+
+			//shorthand function to fade stick figures
+			function fadeSticks(opacity,functionDuration){
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Enabled", true)
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Fade",opacity,functionDuration)
+				if (opacity == 0) {
+					setTimeout(() => {
+						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Enabled", false)
+					}, functionDuration*1000)
+				}					
+			}
+			function LabelConstellations(opacity,functionDuration) {
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Enabled", true)
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Fade",opacity,functionDuration)
+				setTimeout(() => {
+					if (opacity == 0) {
+						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Enabled", false)
+					}		
+				}, functionDuration*1000)
+			}
+			//Adding Constellations
+			function AddConstellation(constellationName) {
+				//check if constellation is saved already
+				 if (saveConstellations.indexOf(constellationName) < 0) {
+					//If not then add it
+					saveConstellations.push(constellationName);
+				 }					
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
+			}
+			//Removing Constellations
+			function removeConstellation(constellationName){
+				//check if constellation is saved already
+				var index = saveConstellations.indexOf(constellationName);
+				if (index > -1) {
+					//If yes, then remove it
+					saveConstellations.splice(index, 1);
+				}
+				 //If there are no more saved Constellations, turn them off
+				 //OpenSpace makes it so that if there are no selected constellations it turns them all on
+				if (saveConstellations.length < 1) {
+					fadeSticks(0, duration);
+					setTimeout(() => {
+						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
+					}, duration*1000+100)
+				} 
+				 //Otherwise, just fade them off quickly and bring the rest back
+				if (saveConstellations.length > 0) {
+					fadeSticks(0,0.5);
+					setTimeout(() => {
+						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
+						fadeSticks(1,0.5);
+					}, 500)		
+				}
+			}
+			//Stick figures
+			function ConstellationStickButton(constellationName, clickedOrNot){
+				if (clickedOrNot != 'clicked') { 
+					fadeSticks(0,0.5);
+					setTimeout(() => {
+						AddConstellation(constellationName);
+						fadeSticks(1,duration);
+					}, 500)
+					clickedOrNot = 'clicked';
+				} else {
+					setTimeout(() => {						
+						removeConstellation(constellationName);
+					}, 100)		
+					clickedOrNot = '';							
+				}
+				return clickedOrNot;
+			}
+			//Constellation Art
+			function ConstellationImageButton(constellationTag, clickedOrNot) {
+				if (clickedOrNot != 'clicked') {
+					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Enabled', true)
+					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Fade',1,duration)
+					//default white, but you can customize RGB fractions, note that the {} turns into [] here:
+					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.MultiplyColor', [1,1,1])
+					clickedOrNot = 'clicked';
+				} else {
+					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Fade',0,duration)
+					setTimeout(() => {
+						openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Enabled', false)
+					}, duration*1000+100)
+					clickedOrNot = '';
+				}
+				return clickedOrNot;
+			}
+			//An Array to keep track of images
+
+			function DeepSkyImage(objectName,filePath,clickedOrNot) {
+				var imageObject = { 
+					Identifier: objectName, 
+					Name: objectName, 
+					Type: "ScreenSpaceImageLocal", 
+					TexturePath: contentPath+filePath
+				};
+				//openspace.setPropertyValueSingle("ScreenSpace.test.UseRadiusAzimuthElevation", true)
+				//openspace.setPropertyValueSingle("ScreenSpace.test.RadiusAzimuthElevation", {2.360000,0.000000,0.000000})
+				if (clickedOrNot != 'clicked') {
+					//remove it first because it will cause problems otherwise.
+					openspace.removeScreenSpaceRenderable(imageObject)
+					openspace.addScreenSpaceRenderable(imageObject)
+					saveImages.push(objectName);
+					openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",0,0)
+					setTimeout(() => {openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",1,duration)},100)
+					if (saveImages.indexOf(objectName) < 0) {
+						//If not then add it
+						saveImages.push(objectName);
+					}		
+					clickedOrNot = 'clicked';
+				} else {
+					openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",0,duration)
+					setTimeout(() => {
+						openspace.removeScreenSpaceRenderable(imageObject)
+						//remove this from the array
+						var index = saveImages.indexOf(objectName);
+						if (index > -1) {
+							//If yes, then remove it
+							saveImages.splice(index, 1);
+						}
+					},duration*1000)
+					clickedOrNot = '';
+				}
+				return clickedOrNot;
+			}
+			
+			var firstConstellationButtons = {
+			//Andromeda, Aries, Auriga, Bootes, Canis Major, Canis Minor, Cassiopeia, Gemini, Leo, Orion, Pegasus, Perseus, Pisces, Taurus, Ursa Major, Ursa Minor, Virgo
+			//These are case sensitive!
+				title: "Jan-Apr Constellations",
+				description: " ",
+				buttons: {
+					'Labels': async () => {
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+								LabelConstellations(1,duration);
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+								LabelConstellations(0,duration);
+							}, 100)
+							this.className = '';
+						}
+					},
+					'Andromeda Stick': async () => {
+						this.className = ConstellationStickButton('Andromeda', this.className);
+					},
+					'Andromeda Image': async () => {
+						this.className = ConstellationImageButton('And', this.className);
+					},
+					'Aries Stick': async () => {
+						this.className = ConstellationStickButton('Aries', this.className);
+					},
+					'Aries Image': async () => {
+						this.className = ConstellationImageButton('Ari', this.className);
+					},
+					'Auriga Stick': async () => {
+						this.className = ConstellationStickButton('Auriga', this.className);
+					},
+					'Auriga Image': async () => {
+						this.className = ConstellationImageButton('Aur', this.className);
+					},
+					'Bootes Stick': async () => {
+						this.className = ConstellationStickButton('Bootes', this.className);
+					},
+					'Bootes Image': async () => {
+						this.className = ConstellationImageButton('Boo', this.className);
+					},
+					'Canis Major Stick': async () => {
+						this.className = ConstellationStickButton('Canis Major', this.className);
+					},
+					'Canis Major Image': async () => {
+						this.className = ConstellationImageButton('CMa', this.className);
+					},
+					'Canis Minor Stick': async () => {
+						this.className = ConstellationStickButton('Canis Minor', this.className);
+					},
+					'Canis Minor Image': async () => {
+						this.className = ConstellationImageButton('CMi', this.className);
+					},
+					'Cassiopeia Stick': async () => {
+						this.className = ConstellationStickButton('Cassiopeia', this.className);
+					},
+					'Cassiopeia Image': async () => {
+						this.className = ConstellationImageButton('Cas', this.className);
+					},
+					'Gemini Stick': async () => {
+						this.className = ConstellationStickButton('Gemini', this.className);
+					},
+					'Gemini Image': async () => {
+						this.className = ConstellationImageButton('Gem', this.className);
+					},
+					'Leo Stick': async () => {
+						this.className = ConstellationStickButton('Leo', this.className);
+					},
+					'Leo Image': async () => {
+						this.className = ConstellationImageButton('Leo', this.className);
+					},
+					'Orion Stick': async () => {
+						this.className = ConstellationStickButton('Orion', this.className);
+					},
+					'Orion Image': async () => {
+						this.className = ConstellationImageButton('Ori', this.className);
+					},
+					'Pegasus Stick': async () => {
+						this.className = ConstellationStickButton('Pegasus', this.className);
+					},
+					'Pegasus Image': async () => {
+						this.className = ConstellationImageButton('Peg', this.className);
+					},
+					'Perseus Stick': async () => {
+						this.className = ConstellationStickButton('Perseus', this.className);
+					},
+					'Perseus Image': async () => {
+						this.className = ConstellationImageButton('Per', this.className);
+					},
+					'Pisces Stick': async () => {
+						this.className = ConstellationStickButton('Pisces', this.className);
+					},
+					'Pisces Image': async () => {
+						this.className = ConstellationImageButton('Psc', this.className);
+					},
+					'Taurus Stick': async () => {
+						this.className = ConstellationStickButton('Taurus', this.className);
+					},
+					'Taurus Image': async () => {
+						this.className = ConstellationImageButton('Tau', this.className);
+					},
+					'Ursa Major Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Major', this.className);
+					},
+					'Ursa Major Image': async () => {
+						this.className = ConstellationImageButton('Uma', this.className);
+					},
+					'Ursa Minor Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Minor', this.className);
+					},
+					'Ursa Minor Image': async () => {
+						this.className = ConstellationImageButton('UMi', this.className);
+					},
+					'Virgo Stick': async () => {
+						this.className = ConstellationStickButton('Virgo', this.className);
+					},
+					'Virgo Image': async () => {
+						this.className = ConstellationImageButton('Vir', this.className);
+					},
+					'_': async () => {
+					//Just a line breaker
+					},
+					'Pleiades': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://hubblesite.org/contents/media/images/2004/20/1562-Image.html?keyword=m45
+						//no spaces in names of files
+						this.className = DeepSkyImage('Pleiades','DeepSky-Pleiades.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)						
+					},
+				},
+			};
+			
+			var secondConstellationButtons = {
+			//Aquila, Auriga, Bootes, Canis Minor, Cassiopeia, Corona Borealis, Cyguns, Gemini, Hercules, leo, Lyra, Sagittarius, Scorpius, Ursa Major, Ursa Minor, Virgo
+				title: "May-Aug Constellations",
+				description: " ",
+				buttons: {
+					'Labels': async () => {
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+								LabelConstellations(1,duration);
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+								LabelConstellations(0,duration);
+							}, 100)
+							this.className = '';
+						}
+					},
+					'Aquila Stick': async () => {
+						this.className = ConstellationStickButton('Aquila', this.className);
+					},
+					'Aquila Image': async () => {
+						this.className = ConstellationImageButton('Aql', this.className);
+					},
+					'Auriga Stick': async () => {
+						this.className = ConstellationStickButton('Auriga', this.className);
+					},
+					'Auriga Image': async () => {
+						this.className = ConstellationImageButton('Aur', this.className);
+					},
+					'Bootes Stick': async () => {
+						this.className = ConstellationStickButton('Bootes', this.className);
+					},
+					'Bootes Image': async () => {
+						this.className = ConstellationImageButton('Boo', this.className);
+					},
+					'Canis Minor Stick': async () => {
+						this.className = ConstellationStickButton('Canis Minor', this.className);
+					},
+					'Canis Minor Image': async () => {
+						this.className = ConstellationImageButton('CMi', this.className);
+					},
+					'Cassiopeia Stick': async () => {
+						this.className = ConstellationStickButton('Cassiopeia', this.className);
+					},
+					'Cassiopeia Image': async () => {
+						this.className = ConstellationImageButton('Cas', this.className);
+					},
+					'Corona Borealis Stick': async () => {
+						this.className = ConstellationStickButton('Corona Borealis', this.className);
+					},
+					'Corona Borealis Image': async () => {
+						this.className = ConstellationImageButton('CrB', this.className);
+					},
+					'Cygnus Stick': async () => {
+						this.className = ConstellationStickButton('Cygnus', this.className);
+					},
+					'Cygnus Image': async () => {
+						this.className = ConstellationImageButton('Cyg', this.className);
+					},
+					'Gemini Stick': async () => {
+						this.className = ConstellationStickButton('Gemini', this.className);
+					},
+					'Gemini Image': async () => {
+						this.className = ConstellationImageButton('Gem', this.className);
+					},
+					'Hercules Stick': async () => {
+						this.className = ConstellationStickButton('Hercules', this.className);
+					},
+					'Hercules Image': async () => {
+						this.className = ConstellationImageButton('Her', this.className);
+					},
+					'Leo Stick': async () => {
+						this.className = ConstellationStickButton('Leo', this.className);
+					},
+					'Leo Image': async () => {
+						this.className = ConstellationImageButton('Leo', this.className);
+					},
+					'Lyra Stick': async () => {
+						this.className = ConstellationStickButton('Lyra', this.className);
+					},
+					'Lyra Image': async () => {
+						this.className = ConstellationImageButton('Lyr', this.className);
+					},
+					'Sagittarius Stick': async () => {
+						this.className = ConstellationStickButton('Sagittarius', this.className);
+					},
+					'Sagittarius Image': async () => {
+						this.className = ConstellationImageButton('Sgr', this.className);
+					},
+					'Scorpius Stick': async () => {
+						this.className = ConstellationStickButton('Scorpius', this.className);
+					},
+					'Scorpius Image': async () => {
+						this.className = ConstellationImageButton('Sco', this.className);
+					},
+					'Ursa Major Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Major', this.className);
+					},
+					'Ursa Major Image': async () => {
+						this.className = ConstellationImageButton('Uma', this.className);
+					},
+					'Ursa Minor Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Minor', this.className);
+					},
+					'Ursa Minor Image': async () => {
+						this.className = ConstellationImageButton('UMi', this.className);
+					},
+					'Virgo Stick': async () => {
+						this.className = ConstellationStickButton('Virgo', this.className);
+					},
+					'Virgo Image': async () => {
+						this.className = ConstellationImageButton('Vir', this.className);
+					},
+					'_': async () => {
+					//Just a line breaker
+					},
+					'Exoplanet Watch': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://exoplanets.nasa.gov/exoplanet-watch/about-exoplanet-watch/overview/
+						//no spaces in names of files
+						this.className = DeepSkyImage('ExoplanetWatch','DeepSky-ExoplanetWatch.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)						
+					},
+					'Hercules Globular Cluster': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-13
+						//no spaces in names of files
+						this.className = DeepSkyImage('HerculesGlobularCluster','DeepSky-HerculesGlobularCluster.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)						
+					},
+					'Kepler-62 f': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://www.jpl.nasa.gov/news/kepler-discovers-its-smallest-habitable-zone-planets
+						//no spaces in names of files
+						this.className = DeepSkyImage('Kepler62f','DeepSky-Kepler62f.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)						
+					},
+					'Pleiades': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://hubblesite.org/contents/media/images/2004/20/1562-Image.html?keyword=m45
+						//no spaces in names of files
+						this.className = DeepSkyImage('Pleiades','DeepSky-Pleiades.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)						
+					},
+					'Ring Nebula': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://stsci-opo.org/STScI-01H82GANSY85GHFY3Y2FN9R65P.png
+						//no spaces in names of files
+						this.className = DeepSkyImage('RingNebula','DeepSky-RingNebula.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},	
+					'Sagittarius A*': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						////https://chandra.harvard.edu/photo/2022/sgra/
+						//no spaces in names of files
+						this.className = DeepSkyImage('SagittariusA','DeepSky-SagittariusA.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},						
+					'T Corona Borealis Nova': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://svs.gsfc.nasa.gov/11608
+						//https://universe-of-learning.org/contents/events/science-briefings/2024/preparing-for-the-predicted-t-coronae-borealis-nova
+						//no spaces in names of files
+						this.className = DeepSkyImage('TCoronaBorealisNova','DeepSky-TCoronaBorealisNova.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},		
+					'Whirlpool Galaxy': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+						//https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-51/
+						//no spaces in names of files
+						this.className = DeepSkyImage('WhirlpoolGalaxy','DeepSky-WhirlpoolGalaxy.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},	
+				},
+			};
+			
+			var thirdConstellationButtons = {
+			//Andromeda, Aries, Aquila, Auriga, Bootes, Capricorn, Cassiopeia, Corona Borealis, Cygnus, Gemini, Hercules, Lyra, Orion, Pegasus, Perseus, Pisces, Sagittarius, Taurus, Ursa Major, Ursa Minor
+				title: "Sep-Dec Constellations",
+				description: " ",
+				buttons: {
+					'Andromeda Stick': async () => {
+						this.className = ConstellationStickButton('Andromeda', this.className);
+					},
+					'Andromeda Image': async () => {
+						this.className = ConstellationImageButton('And', this.className);
+					},
+					'Aries Stick': async () => {
+						this.className = ConstellationStickButton('Aries', this.className);
+					},
+					'Aries Image': async () => {
+						this.className = ConstellationImageButton('Ari', this.className);
+					},
+					'Aquila Stick': async () => {
+						this.className = ConstellationStickButton('Aquila', this.className);
+					},
+					'Aquila Image': async () => {
+						this.className = ConstellationImageButton('Aql', this.className);
+					},
+					'Auriga Stick': async () => {
+						this.className = ConstellationStickButton('Auriga', this.className);
+					},
+					'Auriga Image': async () => {
+						this.className = ConstellationImageButton('Aur', this.className);
+					},
+					'Bootes Stick': async () => {
+						this.className = ConstellationStickButton('Bootes', this.className);
+					},
+					'Bootes Image': async () => {
+						this.className = ConstellationImageButton('Boo', this.className);
+					},
+					'Capricorn Stick': async () => {
+						this.className = ConstellationStickButton('Capricorn', this.className);
+					},
+					'Capricorn Image': async () => {
+						this.className = ConstellationImageButton('Cap', this.className);
+					},
+					'Cassiopeia Stick': async () => {
+						this.className = ConstellationStickButton('Cassiopeia', this.className);
+					},
+					'Cassiopeia Image': async () => {
+						this.className = ConstellationImageButton('Cas', this.className);
+					},
+					'Corona Borealis Stick': async () => {
+						this.className = ConstellationStickButton('Corona Borealis', this.className);
+					},
+					'Corona Borealis Image': async () => {
+						this.className = ConstellationImageButton('CrB', this.className);
+					},
+					'Cygnus Stick': async () => {
+						this.className = ConstellationStickButton('Cygnus', this.className);
+					},
+					'Cygnus Image': async () => {
+						this.className = ConstellationImageButton('Cyg', this.className);
+					},
+					'Gemini Stick': async () => {
+						this.className = ConstellationStickButton('Gemini', this.className);
+					},
+					'Gemini Image': async () => {
+						this.className = ConstellationImageButton('Gem', this.className);
+					},
+					'Hercules Stick': async () => {
+						this.className = ConstellationStickButton('Hercules', this.className);
+					},
+					'Hercules Image': async () => {
+						this.className = ConstellationImageButton('Her', this.className);
+					},
+					'Lyra Stick': async () => {
+						this.className = ConstellationStickButton('Lyra', this.className);
+					},
+					'Lyra Image': async () => {
+						this.className = ConstellationImageButton('Lyr', this.className);
+					},
+					'Orion Stick': async () => {
+						this.className = ConstellationStickButton('Orion', this.className);
+					},
+					'Orion Image': async () => {
+						this.className = ConstellationImageButton('Ori', this.className);
+					},
+					'Pegasus Stick': async () => {
+						this.className = ConstellationStickButton('Pegasus', this.className);
+					},
+					'Pegasus Image': async () => {
+						this.className = ConstellationImageButton('Peg', this.className);
+					},
+					'Perseus Stick': async () => {
+						this.className = ConstellationStickButton('Perseus', this.className);
+					},
+					'Perseus Image': async () => {
+						this.className = ConstellationImageButton('Per', this.className);
+					},
+					'Pisces Stick': async () => {
+						this.className = ConstellationStickButton('Pisces', this.className);
+					},
+					'Pisces Image': async () => {
+						this.className = ConstellationImageButton('Psc', this.className);
+					},
+					'Sagittarius Stick': async () => {
+						this.className = ConstellationStickButton('Sagittarius', this.className);
+					},
+					'Sagittarius Image': async () => {
+						this.className = ConstellationImageButton('Sgr', this.className);
+					},
+					'Taurus Stick': async () => {
+						this.className = ConstellationStickButton('Taurus', this.className);
+					},
+					'Taurus Image': async () => {
+						this.className = ConstellationImageButton('Tau', this.className);
+					},
+					'Ursa Major Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Major', this.className);
+					},
+					'Ursa Major Image': async () => {
+						this.className = ConstellationImageButton('Uma', this.className);
+					},
+					'Ursa Minor Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Minor', this.className);
+					},
+					'Ursa Minor Image': async () => {
+						this.className = ConstellationImageButton('UMi', this.className);
+					},
+					'_': async () => {
+					//Just a line breaker
+					},
+					'Ring Nebula': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://stsci-opo.org/STScI-01H82GANSY85GHFY3Y2FN9R65P.png
+						//no spaces in names of files
+						this.className = DeepSkyImage('RingNebula','DeepSky-RingNebula.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},					
+				},
+			};
+		
+			
+			var programmingButtons = {
+				title: "Programming Buttons",
+				description: "Use this to find your NavState for customized flying sequences",
+				buttons: {
+					'Show Nav State': () => {
+						var navState = openspace.navigation.getNavigationState();
+						console.log(navState);
+						document.getElementById(programmingButtons.title).innerHTML += navState;
+						// Using then() to display result
+						navState.then(x => myDisplay(x));
+
+						// Funtion to run when the Promise is settled:
+						function myDisplay(navObj) {
+							document.getElementById(programmingButtons.title).innerHTML = JSON.stringify(navObj);
+						}
+					},
+				},
+			};
+			
+			var templateButtons = {
+				title: "title_name",
+				description: " ",
+				buttons: {
+					'button1': () => {
+					},
+					'togglebutton1': async () => {
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+							}, duration*1000+100)
+							this.className = '';
+						}
+					},
+				},
+			};
+			
+			var buttonGroups = [setupButtons,planetZoomButtons,bigDipperButtons,firstConstellationButtons,secondConstellationButtons,thirdConstellationButtons,allConstellationButtons,programmingButtons];
+			
+			function mapButtons(openspace) {
+				buttonGroups.map((action, id) => {
+					var cardIndex = '';
+					if( id % 2 == 1 ) {
+						cardIndex = "1";
+					}
+					var cardHTML = "<div class='card" + cardIndex +"'><h2>" + action.title + "</h2>";
+					if (action.buttons) {
+						Object.keys(action.buttons).map(button => {
+							const fn = action.buttons[button];
+							cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
+							//add line break after some buttons
+							if (button == 'Pluto Zoom_') {
+								cardHTML += '<br />';
+							}	
+							if (button == '_') {
+								cardHTML += '<hr>';
+							}	
+						});
+					}
+					if (action.description) {
+						action.description.split('\n').map(item => {
+							cardHTML += "<p id='" + action.title + "'>" + item + "</p>";
+						});
+					}					
+					cardHTML += "</div>";
+					document.getElementById('main').innerHTML += cardHTML;
+				})
+			}
+			
+			var connectToOpenSpace = () => {
+				var host = document.getElementById('ipaddress').value;
+				var api = window.openspaceApi(host, 4682);
+				api.onDisconnect(() => {
+					console.log("disconnected");
+					document.getElementById('container').className = "disconnected";
+					var disconnectedString = "Unable to Connect to OpenSpace: ";
+					disconnectedString += '<input id="ipaddress" type=text placeholder="Enter IP address" /> ';
+					disconnectedString += '<button onClick="connectToOpenSpace();">Connect</button>';
+					document.getElementById('connection-status').innerHTML = disconnectedString;
+					openspace = null;
+				});
+				api.onConnect(async () => {
+					try {
+						document.getElementById('container').className = "connected";
+						document.getElementById('connection-status').innerHTML = "Connected to OpenSpace";
+						openspace = await api.library();
+						console.log('connected');
+						//wipe the page first before building the buttons
+						document.getElementById('main').innerHTML = '';
+						mapButtons(openspace);
+					} catch (e) {
+						console.log('OpenSpace library could not be loaded: Error: \n', e)
+						return;
+					}
+				})
+				api.connect();
+			};
+		</script>
+	</head>
+	<body>
+		<div id="container" class="disconnected">
+			<div id="connection-status" class="connection-status">
+				Connect to OpenSpace:
+				<input id='ipaddress' type=text placeholder="Enter IP address" />
+				<button onClick="connectToOpenSpace();">Connect</button>
+			</div>\
+			<h1>"Constellations Tonight" in OpenSpace</h1>
+			<div id="main">
+			</div>
+			<script type="text/javascript">
+				connectToOpenSpace('localhost');
+			</script>
+
+			<p>Thanks to the <a href="https://stemgateway.nasa.gov/connects/s/mie-alliance-landing-page">NASA Museum & Informal Education Alliance</a>.  Have questions?  Need help?  Email: <a href="mailto:jnee@jpl.nasa.gov">jnee@jpl.nasa.gov</a></p>
+		</div>
+	</body>
+</html>
