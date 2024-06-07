@@ -2,14 +2,33 @@ html {
   background-color: #000;
 }
 
+/* The navigation bar */
+.navbar {
+  overflow: hidden;
+  background-color: #000000;
+  position: fixed; /* Set the navbar to fixed position */
+  top: 0; /* Position the navbar at the top of the page */
+  width: 100%; /* Full width */
+  z-index: 100; /* set it above the content */ 
+  padding: 10px;
+}
+
 body {
   margin: 0;
   padding: 0;
+  padding-bottom: 50px; /* Default height of the bottom */
+  padding-top: 60px; /* Default height of the top */
   font-family: monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-image: url("background.jpg");
   /* https://svs.gsfc.nasa.gov/4851 */
+}
+
+@media (max-width: 910px) {
+	body {
+		padding-top: 90px; /* Adjust this value on smaller screens when the volume slider gets pushed to the next line*/
+	}
 }
 
 code {
@@ -32,6 +51,10 @@ input[type=text]:focus {
   height: 30px;
   width: calc(100% - 1em);
   padding: 0.5em;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 99; /* set it above the content */ 
 }
 
 div.disconnected .connection-status {
@@ -75,6 +98,11 @@ button {
 
 .clicked {
 	background-color: #61559A;
+	/*background-color: #FC0fC0;*/
+	color: white;
+}
+.Positive {
+	background-color: #995500;
 	/*background-color: #FC0fC0;*/
 	color: white;
 }

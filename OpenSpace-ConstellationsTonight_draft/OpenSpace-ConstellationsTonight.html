@@ -1,18 +1,30 @@
 <html>
+	<!-- require this so that apostrophes don't become all weird. -->
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<head>
+		<audio id="bgmusic">
+			<!--put whatever background music you want in here.  Easier just to rename your mp3 into "music" and put it in the same folder as this html file.-->
+			<source src="music.mp3" type="audio/mpeg">
+			Your browser does not support the audio element.
+		</audio>	
 		<title>OpenSpace Constellations Tonight</title>
 		<link rel="stylesheet" type="text/css" href="main2.css">
 		<script type="text/javascript" src="openspace-api.js"></script>
+		<!--Making it easier to write and edit Presenter Messages/Prompts.-->
+		<script type="text/javascript" src="PresenterMessages.js"></script>
 		<script type="text/javascript">
 			//by Jeff Nee at NASA's Museum & Informal Education Alliance at JPL
 			//Last updated: May 2024
-			//created on OpenSpace version 0.19.2
+			//At the bottom of the page are the button messages that you can customize for prenters, search for "var buttonMessages"
+
+			//Thanks to ChatGPT for some code.
 			
 			//These are variables to customize for your own dome as needed/desired:
 			//wherever your content will be on your local machine
-			var contentPath = "C:/Users/SSSVV/Downloads/OpenSpace-ConstellationsTonight_draft/";
-			//default duration for fades:
-			const duration = 1;			
+			var contentPath = "C:/OpenSpace-ConstellationsTonight/";
+			//default duration for fades and flying:
+			const duration = 1;		
+			const flightDuration = 15;
 			//Note this is the default tilt for the single fisheye config for OpenSpace
 			var defaultTilt =27;
 			//Your coordinates, default is set to JPL in Pasadena, CA
@@ -40,6 +52,7 @@
 				Up:lookUpUp,
 				Yaw:lookUpYaw,
 			};			
+			//You might also want to adjust the Earth Texture layers, Ctrl+F for "EarthTexturelayers"
 
 
 			//These are functional variables that are needed for the interface to work
@@ -47,10 +60,11 @@
 			var openspace = null;
 			//array to keep track of loaded images
 			var saveImages=[];	
-			//a simple check that presenter wants multiple constellations or only one at a time
-			var multipleConstellations = 1;
 			//array to save constellations for quick remembering, initialize as empty, which will show all by default
 			var saveConstellations = [];
+			
+			
+			
 			async function hideAllTrails() {
 				
 				openspace.setPropertyValue("Scene.*Trail.Renderable.Opacity", 0, 1)
@@ -87,47 +101,249 @@
 				return clickedOrNot;						
 			}
 
+			function ChangeDescription(sectionName,presenterScript) {
+				//function to display a presenter script when a button is pressed
+				//clear it
+				document.getElementById(sectionName).innerHTML = "";
+				//Then add the text
+				document.getElementById(sectionName).innerHTML += presenterScript;
+				//This is specifcially for the NavState Programming button, turning an object into a string:
+				if (typeof presenterScript !== "string") {
+					presenterScript.then(x => myDisplay(x));
+					function myDisplay(navObj) {
+						document.getElementById(sectionName).innerHTML = JSON.stringify(navObj);
+					}
+				}
+			}
+			
+
+			//shorthand function to fade stick figures
+			function fadeSticks(opacity,functionDuration){
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Enabled", true)
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Fade",opacity,functionDuration)
+				if (opacity == 0) {
+					setTimeout(() => {
+						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Enabled", false)
+					}, functionDuration*1000)
+				}					
+			}
+			function LabelConstellations(opacity,functionDuration) {
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Enabled", true)
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Fade",opacity,functionDuration)
+				setTimeout(() => {
+					if (opacity == 0) {
+						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Enabled", false)
+					}		
+				}, functionDuration*1000)
+			}
+			//Adding Constellations
+			function AddConstellation(constellationName) {
+				//check if constellation is saved already
+				 if (saveConstellations.indexOf(constellationName) < 0) {
+					//If not then add it
+					saveConstellations.push(constellationName);
+				 }					
+				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
+				openspace.setPropertyValueSingle("Scene.ConstellationsExtragalactic.Renderable.ConstellationSelection", saveConstellations)
+			}
+			//Removing Constellations
+			function removeConstellation(constellationName){
+				//check if constellation is saved already
+				var index = saveConstellations.indexOf(constellationName);
+				if (index > -1) {
+					//If yes, then remove it
+					saveConstellations.splice(index, 1);
+				}
+				 //If there are no more saved Constellations, turn them off
+				 //OpenSpace makes it so that if there are no selected constellations it turns them all on
+				if (saveConstellations.length < 1) {
+					fadeSticks(0, duration);
+					setTimeout(() => {
+						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
+						openspace.setPropertyValueSingle("Scene.ConstellationsExtragalactic.Renderable.ConstellationSelection", saveConstellations)
+					}, duration*1000+100)
+				} 
+				 //Otherwise, just fade them off quickly and bring the rest back
+				if (saveConstellations.length > 0) {
+					fadeSticks(0,0.5);
+					setTimeout(() => {
+						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
+						openspace.setPropertyValueSingle("Scene.ConstellationsExtragalactic.Renderable.ConstellationSelection", saveConstellations)
+						fadeSticks(1,0.5);
+					}, 500)		
+				}
+			}
+			//Stick figures
+			function ConstellationStickButton(constellationName, clickedOrNot){
+				if (clickedOrNot != 'clicked') { 
+					fadeSticks(0,0.5);
+					setTimeout(() => {
+						AddConstellation(constellationName);
+						fadeSticks(1,duration);
+					}, 500)
+					clickedOrNot = 'clicked';
+				} else {
+					setTimeout(() => {						
+						removeConstellation(constellationName);
+					}, 100)		
+					clickedOrNot = '';							
+				}
+				return clickedOrNot;
+			}
+			//Constellation Art
+			function ConstellationImageButton(constellationTag, clickedOrNot) {
+				if (clickedOrNot != 'clicked') {
+					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Enabled', true)
+					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Fade',1,duration)
+					//default white, but you can customize RGB fractions, note that the {} turns into [] here:
+					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.MultiplyColor', [1,1,1])
+					clickedOrNot = 'clicked';
+				} else {
+					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Fade',0,duration)
+					setTimeout(() => {
+						openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Enabled', false)
+					}, duration*1000+100)
+					clickedOrNot = '';
+				}
+				return clickedOrNot;
+			}
+			//An Array to keep track of images
+
+			function DeepSkyImage(objectName,buttonGroupTitle,buttonName,filePath,clickedOrNot) {
+				var imageMaxSize = 0.75;
+				var imageObject = { 
+					Identifier: objectName, 
+					Name: objectName, 
+					Type: "ScreenSpaceImageLocal", 
+					TexturePath: contentPath+filePath
+				};
+				//openspace.setPropertyValueSingle("ScreenSpace.test.UseRadiusAzimuthElevation", true)
+				//openspace.setPropertyValueSingle("ScreenSpace.test.RadiusAzimuthElevation", {2.360000,0.000000,0.000000})
+				if (clickedOrNot != 'clicked') {
+					//remove it first because it will cause problems otherwise.
+					openspace.removeScreenSpaceRenderable(imageObject)
+					openspace.addScreenSpaceRenderable(imageObject)
+					saveImages.push(objectName);
+					openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",0,0)
+					setTimeout(() => {openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",imageMaxSize,duration)},100)
+					if (saveImages.indexOf(objectName) < 0) {
+						//If not then add it
+						saveImages.push(objectName);
+					}		
+					clickedOrNot = 'clicked';
+					ChangeDescription(buttonGroupTitle,findMessageByButtonName(buttonMessages, buttonName));
+				} else {
+					openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",0,duration)
+					setTimeout(() => {
+						openspace.removeScreenSpaceRenderable(imageObject)
+						//remove this from the array
+						var index = saveImages.indexOf(objectName);
+						if (index > -1) {
+							//If yes, then remove it
+							saveImages.splice(index, 1);
+						}
+					},duration*1000)
+					clickedOrNot = '';
+					ChangeDescription(buttonGroupTitle,'');
+				}
+				return clickedOrNot;
+			}
+			
+			function AddVideo() {
+				var localVideo = {
+					Identifier: "fakeClock",
+					Type: "ScreenSpaceVideo",
+					Name: "fakeClock",
+					Video: contentPath+"clock-24hr-in-30s.mp4"
+				}
+				//remove it first because it will cause problems otherwise.
+				openspace.removeScreenSpaceRenderable(localVideo)
+				openspace.addScreenSpaceRenderable(localVideo)
+				//openspace.setPropertyValueSingle("ScreenSpace.fakeClock.Scale",0,0)
+			}
+			
+			//just a place holder function to move images wherever you want
+			function MoveDeepSkyImage (objectName, imageAzimuth, imageElevation) {
+			}
+			
 			var setFocus = (focus) => {
 				openspace.setPropertyValue('NavigationHandler.OrbitalNavigator.Anchor', focus);
 				openspace.setPropertyValue('NavigationHandler.OrbitalNavigator.RetargetAnchor', null);
 			}
-			
+			//functions to start and stop rotation of the camera:
+			var rotateCamera = 0;
+			function StartOrbit() {
+				rotateCamera = 1;
+				var globalRotation = setInterval(()=>{
+					openspace.navigation.addGlobalRotation(1,0)
+					if (rotateCamera != 1) {
+						clearInterval(globalRotation);
+						openspace.navigation.addGlobalRotation(0,0)
+					}
+				},500);
+			}
+
+			function StopOrbit() {
+				rotateCamera = 0;
+			}
+			function TemporaryStopOrbit(){
+				if (rotateCamera == 1) {
+					//stop orbit first
+					StopOrbit();
+					document.getElementById('Orbit').className = '';
+					//if it was already going, assume that you want to restart it after the flight
+					setTimeout(() => {
+						StartOrbit();
+						document.getElementById('Orbit').className = 'clicked';
+					},flightDuration*1000+1000)
+				}
+			}
+			function findMessageByButtonName(array, targetButtonName) {
+				for (let i = 0; i < array.length; i++) {
+					if (array[i].buttonName === targetButtonName) {
+						return array[i].message;
+					}
+				}
+				return "No message";  // Return null if no match is found
+			}
+//buttons start here
 			var setupButtons = {
 				title: "Setup Buttons",
 				description: " ",
 				buttons: {
 					'Setup': () => {
+						ChangeDescription(setupButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						openspace.setPropertyValueSingle('Modules.Video.Enabled', true)
-						document.getElementById('Turn on Earth Texture').click();
+						document.getElementById('Set Earth Texture').click();
 						document.getElementById('Turn on Mars Texture').click();
 						document.getElementById('Jump to JPL').click();
+						document.getElementById('Pause Time').click();	
 						setTimeout(() => {	
 							document.getElementById('Hide Trails').click();
-							//document.getElementById('Hide Earth').click();
-							//color these buttons
-							document.getElementById('Show Trails').className = 'clicked';
-							document.getElementById('Show Earth').className = 'clicked';
-						}, 1100)
+							document.getElementById('Hide Earth').click();
+							document.getElementById('Night Sky Planets').click();
+							ChangeDescription(setupButtons.title,'');
+						}, 3100)
 						document.getElementById('Jump to JPL').click();
+
 					},
-					'Turn on Earth Texture': () => {
+					'Set Earth Texture': () => {
+						//adjust these EarthTexturelayers as you wish:
 						//Turning on Blue Marble Earth Layer:
 						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Blue_Marble.Fade',0, 1)
 						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Blue_Marble.Enabled', true)
-						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Blue_Marble.Fade',1,1)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Blue_Marble.Fade',1, duration)
 						//Turning on Earth at Night Layer:
 						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.NightLayers.Earth_Night_Texture.Fade',0, 1)
 						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.NightLayers.Earth_Night_Texture.Enabled', true)
-						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.NightLayers.Earth_Night_Texture.Fade',1,1)
-						//Turning on ESRI NOAA
-						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.ESRI_NOAA20_Combo.Fade',0)
-						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.ESRI_NOAA20_Combo.Enabled', true)
-						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.ESRI_NOAA20_Combo.Fade',1,1)
-						//Turning on VIIRS layer
-						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.VIIRS_SNPP_Temporal.Fade',0)
-						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.VIIRS_SNPP_Temporal.Enabled', true)
-						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.VIIRS_SNPP_Temporal.Fade',1,1)
-
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.NightLayers.Earth_Night_Texture.Fade',1, duration)
+						//Turn off ESRI_VIIRS_Combo
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.ESRI_VIIRS_Combo.Fade',0,1)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.ESRI_VIIRS_Combo.Enabled', false)
+						//Turn on Aqua_Modis
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Aqua_Modis_Temporal.Fade',0)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Aqua_Modis_Temporal.Enabled', true)
+						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Layers.ColorLayers.Aqua_Modis_Temporal.Fade',1, duration)
 						//Turning on the Earth:
 						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Opacity', 0, 0.1)
 						openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 0, 1)
@@ -143,7 +359,19 @@
 					'Turn on Mars Texture': () => {
 						openspace.setPropertyValueSingle('Scene.Mars.Renderable.Layers.ColorLayers.Mars_Texture.Fade',0)
 						openspace.setPropertyValueSingle('Scene.Mars.Renderable.Layers.ColorLayers.Mars_Texture.Enabled', true)
-						openspace.setPropertyValueSingle('Scene.Mars.Renderable.Layers.ColorLayers.Mars_Texture.Fade',1,1)
+						openspace.setPropertyValueSingle('Scene.Mars.Renderable.Layers.ColorLayers.Mars_Texture.Fade',1, duration)
+					},
+					'Jump to JPL': () => {
+						openspace.setPropertyValueSingle('RenderEngine.BlackoutFactor',0,2)
+						setTimeout(() => {
+							//coordinates to customize
+							openspace.globebrowsing.goToGeo('Earth',defaultLatitude,defaultLongitude,defaultAltitude)
+							openspace.navigation.setNavigationState(defaultNavigationState)
+							openspace.setPropertyValueSingle('RenderEngine.BlackoutFactor',1,2)
+						}, 2100)
+					},
+					'Earth Atmosphere': async () => {
+						this.className = EarthAtmosphereToggle(this.className);
 					},
 					'Hide Trails': () => {
 						hideAllTrails();
@@ -153,26 +381,20 @@
 					},
 					'Hide Earth': () => {
 						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Opacity', 0, 2)
-						openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 0, 1)
+						//openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 0, 1)
 					},
 					'Show Earth': () => {
-						openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 6.9, 1)
+						//openspace.setPropertyValueSingle('Scene.EarthAtmosphere.Renderable.SunIntensity', 6.9, 1)
 						openspace.setPropertyValueSingle('Scene.Earth.Renderable.Opacity', 1, 2)
 					},
-					'Earth Atmosphere': async () => {
-						this.className = EarthAtmosphereToggle(this.className);
-					},
-					'Jump to JPL': () => {
-						openspace.setPropertyValueSingle('RenderEngine.BlackoutFactor',0,2)
-						setTimeout(() => {
+					'Pause Time': () => {
 							//stopping time
-							openspace.time.interpolateTogglePause()
-							//coordinates to customize
-							openspace.globebrowsing.goToGeo('Earth',defaultLatitude,defaultLongitude,defaultAltitude)
-							openspace.navigation.setNavigationState(defaultNavigationState)
-							openspace.setPropertyValueSingle('RenderEngine.BlackoutFactor',1,2)
-						}, 2100)
-					},			
+							openspace.time.interpolatePause(true,duration)
+					},
+					'Run Time': () => {
+							//play time
+							openspace.time.interpolatePause(false,duration)
+					},
 				},
 			};
 			var timeButtons = {
@@ -201,17 +423,54 @@
 				description: " ",
 				buttons: {
 					//add extra space to match with Label buttons on the next row
+					'Night Sky Planets': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.NightSkyJupiter.Renderable.Fade',0)
+							openspace.setPropertyValueSingle('Scene.NightSkyJupiter.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.NightSkyJupiter.Renderable.Fade',1, duration)
+							openspace.setPropertyValueSingle('Scene.NightSkyMars.Renderable.Fade',0)
+							openspace.setPropertyValueSingle('Scene.NightSkyMars.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.NightSkyMars.Renderable.Fade',1, duration)
+							openspace.setPropertyValueSingle('Scene.NightSkyMercury.Renderable.Fade',0)
+							openspace.setPropertyValueSingle('Scene.NightSkyMercury.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.NightSkyMercury.Renderable.Fade',1, duration)
+							openspace.setPropertyValueSingle('Scene.NightSkySaturn.Renderable.Fade',0)
+							openspace.setPropertyValueSingle('Scene.NightSkySaturn.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.NightSkySaturn.Renderable.Fade',1, duration)
+							openspace.setPropertyValueSingle('Scene.NightSkyVenus.Renderable.Fade',0)
+							openspace.setPropertyValueSingle('Scene.NightSkyVenus.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.NightSkyVenus.Renderable.Fade',1, duration)
+							this.className = 'clicked';
+						} else {
+							openspace.setPropertyValueSingle('Scene.NightSkyJupiter.Renderable.Fade',0, duration)
+							openspace.setPropertyValueSingle('Scene.NightSkyMars.Renderable.Fade',0, duration)
+							openspace.setPropertyValueSingle('Scene.NightSkyMercury.Renderable.Fade',0, duration)
+							openspace.setPropertyValueSingle('Scene.NightSkySaturn.Renderable.Fade',0, duration)
+							openspace.setPropertyValueSingle('Scene.NightSkyVenus.Renderable.Fade',0, duration)
+							setTimeout(() => {
+								openspace.setPropertyValueSingle('Scene.NightSkyJupiter.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.NightSkyMars.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.NightSkyMercury.Renderable.Enabled', false)								
+								openspace.setPropertyValueSingle('Scene.NightSkySaturn.Renderable.Enabled', false)								
+								openspace.setPropertyValueSingle('Scene.NightSkyVenus.Renderable.Enabled', false)								
+							},duration*1000)
+							this.className = '';
+						}
+						
+					},
 					'Mercury Zoom_': async () => {
 						if (this.className != 'clicked') {
 							openspace.setPropertyValueSingle('Scene.Mercury.Scale.Scale', 2000, 1)
 							openspace.setPropertyValueSingle('Scene.Mercury.Renderable.PerformShading', false)
 							this.className = 'clicked';
+							ChangeDescription(planetZoomButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						} else {
 							openspace.setPropertyValueSingle('Scene.Mercury.Scale.Scale', 1, 1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Mercury.Renderable.PerformShading', true)
 							}, 1100)
 							this.className = '';
+							ChangeDescription(planetZoomButtons.title,'');
 						}
 					},
 					'Venus Zoom_': async () => {
@@ -219,12 +478,14 @@
 							openspace.setPropertyValueSingle('Scene.Venus.Scale.Scale', 2000, 1)
 							openspace.setPropertyValueSingle('Scene.Venus.Renderable.PerformShading', false)
 							this.className = 'clicked';
+							ChangeDescription(planetZoomButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						} else {
 							openspace.setPropertyValueSingle('Scene.Venus.Scale.Scale', 1, 1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Venus.Renderable.PerformShading', true)
 							}, 1100)
 							this.className = '';
+							ChangeDescription(planetZoomButtons.title,'');
 						}
 					},
 					'Mars Zoom_': async () => {
@@ -232,12 +493,14 @@
 							openspace.setPropertyValueSingle('Scene.Mars.Scale.Scale', 2000, 1)
 							openspace.setPropertyValueSingle('Scene.Mars.Renderable.PerformShading', false)
 							this.className = 'clicked';
+							ChangeDescription(planetZoomButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						} else {
 							openspace.setPropertyValueSingle('Scene.Mars.Scale.Scale', 1, 1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Mars.Renderable.PerformShading', true)
 							}, 1100)
 							this.className = '';
+							ChangeDescription(planetZoomButtons.title,'');
 						}
 					},
 					'Jupiter Zoom_': async () => {
@@ -245,12 +508,14 @@
 							openspace.setPropertyValueSingle('Scene.Jupiter.Scale.Scale', 2000, 1)
 							openspace.setPropertyValueSingle('Scene.Jupiter.Renderable.PerformShading', false)
 							this.className = 'clicked';
+							ChangeDescription(planetZoomButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						} else {
 							openspace.setPropertyValueSingle('Scene.Jupiter.Scale.Scale', 1, 1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Jupiter.Renderable.PerformShading', true)
 							}, 1100)
 							this.className = '';
+							ChangeDescription(planetZoomButtons.title,'');
 						}
 					},
 					'Saturn Zoom_': async () => {
@@ -258,12 +523,14 @@
 							openspace.setPropertyValueSingle('Scene.Saturn.Scale.Scale', 2000, 1)
 							openspace.setPropertyValueSingle('Scene.Saturn.Renderable.PerformShading', false)
 							this.className = 'clicked';
+							ChangeDescription(planetZoomButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						} else {
 							openspace.setPropertyValueSingle('Scene.Saturn.Scale.Scale', 1, 1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Saturn.Renderable.PerformShading', true)
 							}, 1100)
 							this.className = '';
+							ChangeDescription(planetZoomButtons.title,'');
 						}
 					},
 					'Uranus Zoom_': async () => {
@@ -271,12 +538,14 @@
 							openspace.setPropertyValueSingle('Scene.Uranus.Scale.Scale', 2000, 1)
 							openspace.setPropertyValueSingle('Scene.Uranus.Renderable.PerformShading', false)
 							this.className = 'clicked';
+							ChangeDescription(planetZoomButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						} else {
 							openspace.setPropertyValueSingle('Scene.Uranus.Scale.Scale', 1, 1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Uranus.Renderable.PerformShading', true)
 							}, 1100)
 							this.className = '';
+							ChangeDescription(planetZoomButtons.title,'');
 						}
 					},
 					'Neptune Zoom_': async () => {
@@ -284,12 +553,14 @@
 							openspace.setPropertyValueSingle('Scene.Neptune.Scale.Scale', 2000, 1)
 							openspace.setPropertyValueSingle('Scene.Neptune.Renderable.PerformShading', false)
 							this.className = 'clicked';
+							ChangeDescription(planetZoomButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						} else {
 							openspace.setPropertyValueSingle('Scene.Neptune.Scale.Scale', 1, 1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Neptune.Renderable.PerformShading', true)
 							}, 1100)
 							this.className = '';
+							ChangeDescription(planetZoomButtons.title,'');
 						}
 					},
 					'Pluto Zoom_': async () => {
@@ -297,12 +568,14 @@
 							openspace.setPropertyValueSingle('Scene.Pluto.Scale.Scale', 50000, 1)
 							openspace.setPropertyValueSingle('Scene.Pluto.Renderable.PerformShading', false)
 							this.className = 'clicked';
+							ChangeDescription(planetZoomButtons.title,findMessageByButtonName(buttonMessages, this.textContent));
 						} else {
 							openspace.setPropertyValueSingle('Scene.Pluto.Scale.Scale', 1, 1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Pluto.Renderable.PerformShading', true)
 							}, 1100)
 							this.className = '';
+							ChangeDescription(planetZoomButtons.title,'');
 						}
 					},
 					'Mercury Label': async () => {
@@ -310,7 +583,7 @@
 						openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.OrientationOption', 1.000000)
 						openspace.setPropertyValueSingle('Scene.MercuryLabel.Translation.Position', [0.000000,0.000000,2e6])
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.Fade',1,1)
+							openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.Fade',1, duration)
 							this.className = 'clicked';
 						} else {
 							openspace.setPropertyValueSingle('Scene.MercuryLabel.Renderable.Fade',0,1)
@@ -325,7 +598,7 @@
 						openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.OrientationOption', 1.000000)
 						openspace.setPropertyValueSingle('Scene.VenusLabel.Translation.Position', [0.000000,0.000000,2e6])
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.Fade',1,1)
+							openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.Fade',1, duration)
 							this.className = 'clicked';
 						} else {
 							openspace.setPropertyValueSingle('Scene.VenusLabel.Renderable.Fade',0,1)
@@ -340,7 +613,7 @@
 						openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.OrientationOption', 1.000000)
 						openspace.setPropertyValueSingle('Scene.MarsLabel.Translation.Position', [0.000000,0.000000,2e6])
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.Fade',1,1)
+							openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.Fade',1, duration)
 							this.className = 'clicked';
 						} else {
 							openspace.setPropertyValueSingle('Scene.MarsLabel.Renderable.Fade',0,1)
@@ -355,7 +628,7 @@
 						openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.OrientationOption', 1.000000)
 						openspace.setPropertyValueSingle('Scene.JupiterLabel.Translation.Position', [0.000000,0.000000,8e7])
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.Fade',1,1)
+							openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.Fade',1, duration)
 							this.className = 'clicked';
 						} else {
 							openspace.setPropertyValueSingle('Scene.JupiterLabel.Renderable.Fade',0,1)
@@ -370,7 +643,7 @@
 						openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.OrientationOption', 1.000000)
 						openspace.setPropertyValueSingle('Scene.SaturnLabel.Translation.Position', [0.000000,0.000000,5e7])
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.Fade',1,1)
+							openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.Fade',1, duration)
 							this.className = 'clicked';
 						} else {
 							openspace.setPropertyValueSingle('Scene.SaturnLabel.Renderable.Fade',0,1)
@@ -386,7 +659,7 @@
 						openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.OrientationOption', 1.000000)
 						openspace.setPropertyValueSingle('Scene.UranusLabel.Translation.Position', [0.000000,0.000000,6e7])
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.Fade',1,1)
+							openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.Fade',1, duration)
 							this.className = 'clicked';
 						} else {
 							openspace.setPropertyValueSingle('Scene.UranusLabel.Renderable.Fade',0,1)
@@ -402,7 +675,7 @@
 						openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.OrientationOption', 1.000000)
 						openspace.setPropertyValueSingle('Scene.NeptuneLabel.Translation.Position', [0.000000,0.000000,5e7])
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.Fade',1,1)
+							openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.Fade',1, duration)
 							this.className = 'clicked';
 						} else {
 							openspace.setPropertyValueSingle('Scene.NeptuneLabel.Renderable.Fade',0,1)
@@ -417,7 +690,7 @@
 						openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.OrientationOption', 1.000000)
 						openspace.setPropertyValueSingle('Scene.PlutoLabel.Translation.Position', [0.000000,0.000000,-4e6])
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.Fade',1,1)
+							openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.Fade',1, duration)
 							this.className = 'clicked';
 						} else {
 							openspace.setPropertyValueSingle('Scene.PlutoLabel.Renderable.Fade',0,1)
@@ -554,11 +827,496 @@
 					},
 					//Cardinal Directions won't work above the atmosphere
 					'Above Atmosphere': () => {
-						//stopping time
-						openspace.time.interpolateTogglePause()
 						//coordinates to customize
-						openspace.navigation.setNavigationState(inSpaceNavigationState)
+						//openspace.navigation.setNavigationState(inSpaceNavigationState)
+						openspace.pathnavigation.flyToNavigationState(inSpaceNavigationState, 5)
+						ChangeDescription(bigDipperButtons.title,findMessageByButtonName(buttonMessages, this.textContent))
+						setTimeout(() => {
+							ChangeDescription(bigDipperButtons.title,'')
+						},5000)
 					},		
+				},
+			};
+			
+
+
+			var firstConstellationButtons = {
+			//Andromeda, Aries, Auriga, Bootes, Canis Major, Canis Minor, Cassiopeia, Gemini, Leo, Orion, Pegasus, Perseus, Pisces, Taurus, Ursa Major, Ursa Minor, Virgo
+			//These are case sensitive!
+				title: "Jan-Apr",
+				description: " ",
+				buttons: {
+					'Labels': async () => {
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+								LabelConstellations(1,duration);
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+								LabelConstellations(0,duration);
+							}, 100)
+							this.className = '';
+						}
+					},
+					'Andromeda Stick': async () => {
+						this.className = ConstellationStickButton('Andromeda', this.className);
+					},
+					'Andromeda Image': async () => {
+						this.className = ConstellationImageButton('And', this.className);
+					},
+					'Aries Stick': async () => {
+						this.className = ConstellationStickButton('Aries', this.className);
+					},
+					'Aries Image': async () => {
+						this.className = ConstellationImageButton('Ari', this.className);
+					},
+					'Auriga Stick': async () => {
+						this.className = ConstellationStickButton('Auriga', this.className);
+					},
+					'Auriga Image': async () => {
+						this.className = ConstellationImageButton('Aur', this.className);
+					},
+					'Bootes Stick': async () => {
+						this.className = ConstellationStickButton('Bootes', this.className);
+					},
+					'Bootes Image': async () => {
+						this.className = ConstellationImageButton('Boo', this.className);
+					},
+					'Canis Major Stick': async () => {
+						this.className = ConstellationStickButton('Canis Major', this.className);
+					},
+					'Canis Major Image': async () => {
+						this.className = ConstellationImageButton('CMa', this.className);
+					},
+					'Canis Minor Stick': async () => {
+						this.className = ConstellationStickButton('Canis Minor', this.className);
+					},
+					'Canis Minor Image': async () => {
+						this.className = ConstellationImageButton('CMi', this.className);
+					},
+					'Cassiopeia Stick': async () => {
+						this.className = ConstellationStickButton('Cassiopeia', this.className);
+					},
+					'Cassiopeia Image': async () => {
+						this.className = ConstellationImageButton('Cas', this.className);
+					},
+					'Gemini Stick': async () => {
+						this.className = ConstellationStickButton('Gemini', this.className);
+					},
+					'Gemini Image': async () => {
+						this.className = ConstellationImageButton('Gem', this.className);
+					},
+					'Leo Stick': async () => {
+						this.className = ConstellationStickButton('Leo', this.className);
+					},
+					'Leo Image': async () => {
+						this.className = ConstellationImageButton('Leo', this.className);
+					},
+					'Orion Stick': async () => {
+						this.className = ConstellationStickButton('Orion', this.className);
+					},
+					'Orion Image': async () => {
+						this.className = ConstellationImageButton('Ori', this.className);
+					},
+					'Pegasus Stick': async () => {
+						this.className = ConstellationStickButton('Pegasus', this.className);
+					},
+					'Pegasus Image': async () => {
+						this.className = ConstellationImageButton('Peg', this.className);
+					},
+					'Perseus Stick': async () => {
+						this.className = ConstellationStickButton('Perseus', this.className);
+					},
+					'Perseus Image': async () => {
+						this.className = ConstellationImageButton('Per', this.className);
+					},
+					'Pisces Stick': async () => {
+						this.className = ConstellationStickButton('Pisces', this.className);
+					},
+					'Pisces Image': async () => {
+						this.className = ConstellationImageButton('Psc', this.className);
+					},
+					'Taurus Stick': async () => {
+						this.className = ConstellationStickButton('Taurus', this.className);
+					},
+					'Taurus Image': async () => {
+						this.className = ConstellationImageButton('Tau', this.className);
+					},
+					'Ursa Major Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Major', this.className);
+					},
+					'Ursa Major Image': async () => {
+						this.className = ConstellationImageButton('Uma', this.className);
+					},
+					'Ursa Minor Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Minor', this.className);
+					},
+					'Ursa Minor Image': async () => {
+						this.className = ConstellationImageButton('UMi', this.className);
+					},
+					'Virgo Stick': async () => {
+						this.className = ConstellationStickButton('Virgo', this.className);
+					},
+					'Virgo Image-': async () => {
+						this.className = ConstellationImageButton('Vir', this.className);
+					},
+					'Pleiades': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://hubblesite.org/contents/media/images/2004/20/1562-Image.html?keyword=m45
+						//no spaces in names of files
+						this.className = DeepSkyImage('Pleiades',firstConstellationButtons.title,this.textContent,'DeepSky-Pleiades.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)						
+					},
+				},
+			};
+			
+			var secondConstellationButtons = {
+			//Aquila, Auriga, Bootes, Canis Minor, Cassiopeia, Corona Borealis, Cyguns, Gemini, Hercules, leo, Lyra, Sagittarius, Scorpius, Ursa Major, Ursa Minor, Virgo
+				title: "May-Aug",
+				description: " ",
+				buttons: {
+					'Labels': async () => {
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+								LabelConstellations(1,duration);
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+								LabelConstellations(0,duration);
+							}, 100)
+							this.className = '';
+						}
+					},
+					'Aquila Stick': async () => {
+						this.className = ConstellationStickButton('Aquila', this.className);
+					},
+					'Aquila Image': async () => {
+						this.className = ConstellationImageButton('Aql', this.className);
+					},
+					'Auriga Stick': async () => {
+						this.className = ConstellationStickButton('Auriga', this.className);
+					},
+					'Auriga Image': async () => {
+						this.className = ConstellationImageButton('Aur', this.className);
+					},
+					'Bootes Stick': async () => {
+						this.className = ConstellationStickButton('Bootes', this.className);
+					},
+					'Bootes Image': async () => {
+						this.className = ConstellationImageButton('Boo', this.className);
+					},
+					'Canis Minor Stick': async () => {
+						this.className = ConstellationStickButton('Canis Minor', this.className);
+					},
+					'Canis Minor Image': async () => {
+						this.className = ConstellationImageButton('CMi', this.className);
+					},
+					'Cassiopeia Stick': async () => {
+						this.className = ConstellationStickButton('Cassiopeia', this.className);
+					},
+					'Cassiopeia Image': async () => {
+						this.className = ConstellationImageButton('Cas', this.className);
+					},
+					'Corona Borealis Stick': async () => {
+						this.className = ConstellationStickButton('Corona Borealis', this.className);
+					},
+					'Corona Borealis Image': async () => {
+						this.className = ConstellationImageButton('CrB', this.className);
+					},
+					'Cygnus Stick': async () => {
+						this.className = ConstellationStickButton('Cygnus', this.className);
+					},
+					'Cygnus Image': async () => {
+						this.className = ConstellationImageButton('Cyg', this.className);
+					},
+					'Gemini Stick': async () => {
+						this.className = ConstellationStickButton('Gemini', this.className);
+					},
+					'Gemini Image': async () => {
+						this.className = ConstellationImageButton('Gem', this.className);
+					},
+					'Hercules Stick': async () => {
+						this.className = ConstellationStickButton('Hercules', this.className);
+					},
+					'Hercules Image': async () => {
+						this.className = ConstellationImageButton('Her', this.className);
+					},
+					'Leo Stick': async () => {
+						this.className = ConstellationStickButton('Leo', this.className);
+					},
+					'Leo Image': async () => {
+						this.className = ConstellationImageButton('Leo', this.className);
+					},
+					'Lyra Stick': async () => {
+						this.className = ConstellationStickButton('Lyra', this.className);
+					},
+					'Lyra Image': async () => {
+						this.className = ConstellationImageButton('Lyr', this.className);
+					},
+					'Sagittarius Stick': async () => {
+						this.className = ConstellationStickButton('Sagittarius', this.className);
+					},
+					'Sagittarius Image': async () => {
+						this.className = ConstellationImageButton('Sgr', this.className);
+					},
+					'Scorpius Stick': async () => {
+						this.className = ConstellationStickButton('Scorpius', this.className);
+					},
+					'Scorpius Image': async () => {
+						this.className = ConstellationImageButton('Sco', this.className);
+					},
+					'Ursa Major Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Major', this.className);
+					},
+					'Ursa Major Image': async () => {
+						this.className = ConstellationImageButton('Uma', this.className);
+					},
+					'Ursa Minor Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Minor', this.className);
+					},
+					'Ursa Minor Image': async () => {
+						this.className = ConstellationImageButton('UMi', this.className);
+					},
+					'Virgo Stick': async () => {
+						this.className = ConstellationStickButton('Virgo', this.className);
+					},
+					'Virgo Image-': async () => {
+						this.className = ConstellationImageButton('Vir', this.className);
+					},
+					'Exoplanet Watch': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://exoplanets.nasa.gov/exoplanet-watch/about-exoplanet-watch/overview/
+						//no spaces in names of files
+						this.className = DeepSkyImage('ExoplanetWatch',secondConstellationButtons.title,this.textContent,'DeepSky-ExoplanetWatch.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+						
+					},
+					'Hercules Globular Cluster': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-13
+						//no spaces in names of files
+						this.className = DeepSkyImage('HerculesGlobularCluster',secondConstellationButtons.title,this.textContent,'DeepSky-HerculesGlobularCluster.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)				
+					},
+					'Kepler-62 f': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://www.jpl.nasa.gov/news/kepler-discovers-its-smallest-habitable-zone-planets
+						//no spaces in names of files
+						this.className = DeepSkyImage('Kepler62f',secondConstellationButtons.title,this.textContent,'DeepSky-Kepler62f.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)				
+					},
+					'Pleiades': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://hubblesite.org/contents/media/images/2004/20/1562-Image.html?keyword=m45
+						//no spaces in names of files
+						this.className = DeepSkyImage('Pleiades',secondConstellationButtons.title,this.textContent,'DeepSky-Pleiades.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)					
+					},
+					'Ring Nebula': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://stsci-opo.org/STScI-01H82GANSY85GHFY3Y2FN9R65P.png
+						//no spaces in names of files
+						this.className = DeepSkyImage('RingNebula',secondConstellationButtons.title,this.textContent,'DeepSky-RingNebula.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},	
+					'Sagittarius A*': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						////https://chandra.harvard.edu/photo/2022/sgra/
+						//no spaces in names of files
+						this.className = DeepSkyImage('SagittariusA',secondConstellationButtons.title,this.textContent,'DeepSky-SagittariusA.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},						
+					'T Corona Borealis Nova': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://svs.gsfc.nasa.gov/11608
+						//https://universe-of-learning.org/contents/events/science-briefings/2024/preparing-for-the-predicted-t-coronae-borealis-nova
+						//no spaces in names of files
+						this.className = DeepSkyImage('TCoronaBorealisNova',secondConstellationButtons.title,this.textContent,'DeepSky-TCoronaBorealisNova.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},		
+					'Whirlpool Galaxy': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+						//https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-51/
+						//no spaces in names of files
+						this.className = DeepSkyImage('WhirlpoolGalaxy',secondConstellationButtons.title,this.textContent,'DeepSky-WhirlpoolGalaxy.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},	
+				},
+			};
+			
+			var thirdConstellationButtons = {
+			//Andromeda, Aries, Aquila, Auriga, Bootes, Capricorn, Cassiopeia, Corona Borealis, Cygnus, Gemini, Hercules, Lyra, Orion, Pegasus, Perseus, Pisces, Sagittarius, Taurus, Ursa Major, Ursa Minor
+				title: "Sep-Dec",
+				description: " ",
+				buttons: {
+					'Andromeda Stick': async () => {
+						this.className = ConstellationStickButton('Andromeda', this.className);
+					},
+					'Andromeda Image': async () => {
+						this.className = ConstellationImageButton('And', this.className);
+					},
+					'Aries Stick': async () => {
+						this.className = ConstellationStickButton('Aries', this.className);
+					},
+					'Aries Image': async () => {
+						this.className = ConstellationImageButton('Ari', this.className);
+					},
+					'Aquila Stick': async () => {
+						this.className = ConstellationStickButton('Aquila', this.className);
+					},
+					'Aquila Image': async () => {
+						this.className = ConstellationImageButton('Aql', this.className);
+					},
+					'Auriga Stick': async () => {
+						this.className = ConstellationStickButton('Auriga', this.className);
+					},
+					'Auriga Image': async () => {
+						this.className = ConstellationImageButton('Aur', this.className);
+					},
+					'Bootes Stick': async () => {
+						this.className = ConstellationStickButton('Bootes', this.className);
+					},
+					'Bootes Image': async () => {
+						this.className = ConstellationImageButton('Boo', this.className);
+					},
+					'Capricorn Stick': async () => {
+						this.className = ConstellationStickButton('Capricorn', this.className);
+					},
+					'Capricorn Image': async () => {
+						this.className = ConstellationImageButton('Cap', this.className);
+					},
+					'Cassiopeia Stick': async () => {
+						this.className = ConstellationStickButton('Cassiopeia', this.className);
+					},
+					'Cassiopeia Image': async () => {
+						this.className = ConstellationImageButton('Cas', this.className);
+					},
+					'Corona Borealis Stick': async () => {
+						this.className = ConstellationStickButton('Corona Borealis', this.className);
+					},
+					'Corona Borealis Image': async () => {
+						this.className = ConstellationImageButton('CrB', this.className);
+					},
+					'Cygnus Stick': async () => {
+						this.className = ConstellationStickButton('Cygnus', this.className);
+					},
+					'Cygnus Image': async () => {
+						this.className = ConstellationImageButton('Cyg', this.className);
+					},
+					'Gemini Stick': async () => {
+						this.className = ConstellationStickButton('Gemini', this.className);
+					},
+					'Gemini Image': async () => {
+						this.className = ConstellationImageButton('Gem', this.className);
+					},
+					'Hercules Stick': async () => {
+						this.className = ConstellationStickButton('Hercules', this.className);
+					},
+					'Hercules Image': async () => {
+						this.className = ConstellationImageButton('Her', this.className);
+					},
+					'Lyra Stick': async () => {
+						this.className = ConstellationStickButton('Lyra', this.className);
+					},
+					'Lyra Image': async () => {
+						this.className = ConstellationImageButton('Lyr', this.className);
+					},
+					'Orion Stick': async () => {
+						this.className = ConstellationStickButton('Orion', this.className);
+					},
+					'Orion Image': async () => {
+						this.className = ConstellationImageButton('Ori', this.className);
+					},
+					'Pegasus Stick': async () => {
+						this.className = ConstellationStickButton('Pegasus', this.className);
+					},
+					'Pegasus Image': async () => {
+						this.className = ConstellationImageButton('Peg', this.className);
+					},
+					'Perseus Stick': async () => {
+						this.className = ConstellationStickButton('Perseus', this.className);
+					},
+					'Perseus Image': async () => {
+						this.className = ConstellationImageButton('Per', this.className);
+					},
+					'Pisces Stick': async () => {
+						this.className = ConstellationStickButton('Pisces', this.className);
+					},
+					'Pisces Image': async () => {
+						this.className = ConstellationImageButton('Psc', this.className);
+					},
+					'Sagittarius Stick': async () => {
+						this.className = ConstellationStickButton('Sagittarius', this.className);
+					},
+					'Sagittarius Image': async () => {
+						this.className = ConstellationImageButton('Sgr', this.className);
+					},
+					'Taurus Stick': async () => {
+						this.className = ConstellationStickButton('Taurus', this.className);
+					},
+					'Taurus Image': async () => {
+						this.className = ConstellationImageButton('Tau', this.className);
+					},
+					'Ursa Major Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Major', this.className);
+					},
+					'Ursa Major Image': async () => {
+						this.className = ConstellationImageButton('Uma', this.className);
+					},
+					'Ursa Minor Stick': async () => {
+						this.className = ConstellationStickButton('Ursa Minor', this.className);
+					},
+					'Ursa Minor Image-': async () => {
+						this.className = ConstellationImageButton('UMi', this.className);
+					},
+					'Ring Nebula': async () => {
+						//prevent the button from being interrupted to avoid errors
+						this.disabled = true;
+
+						//https://stsci-opo.org/STScI-01H82GANSY85GHFY3Y2FN9R65P.png
+						//no spaces in names of files
+						this.className = DeepSkyImage('RingNebula',thirdConstellationButtons.title,this.textContent,'DeepSky-RingNebula.png', this.className);
+
+						//enable button again after
+						setTimeout(()=>{this.disabled = false;},duration*1000)
+					},					
 				},
 			};
 			
@@ -572,7 +1330,8 @@
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.ConstellationSelection', [])
 								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', true)
-								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Fade',1,1)
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.DrawElements', true)
+								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Fade',1, duration)
 							}, 100)
 							this.className = 'clicked';
 						} else {
@@ -588,7 +1347,7 @@
 							openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Fade',0,0.1)
 							setTimeout(() => {
 								openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Enabled', true)
-								openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Fade',1,1)
+								openspace.setPropertyValueSingle('Scene.ConstellationBounds.Renderable.Fade',1, duration)
 							}, 100)
 							this.className = 'clicked';
 						} else {
@@ -949,657 +1708,95 @@
 					},
 					
 					'Labels': async () => {
-						
 						const opacity =1;
 						if (this.className != 'clicked') {
-							openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Opacity',0,0.1)
+							openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.Fade',0,0.1)
 							setTimeout(() => {
-								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.ConstellationSelection', [])
-								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.DrawElements', false)
-								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', true)
-								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Enabled', true)
+								openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.Enabled', true)
+								openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.Labels.Enabled', true)								
+								//turn off these stick figures because we like the others better.
+								openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.DrawElements', false)
 								setTimeout(() => {
-									openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Opacity',opacity,duration)
+									openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.Fade',opacity,duration)
+									openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.Labels.Fade',opacity,duration)
 								}, 100)
 							}, 100)
 							this.className = 'clicked';
 						} else {
-							openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Opacity',0,duration)
+							openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.Labels.Fade',0,duration)
 							setTimeout(() => {
-								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Labels.Enabled', false)
-								openspace.setPropertyValueSingle('Scene.Constellations.Renderable.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.Labels.Enabled', false)
+								openspace.setPropertyValueSingle('Scene.ConstellationsExtragalactic.Renderable.Enabled', false)
 							}, duration*1000+100)
 							this.className = '';
 						}
 					},
-					'Focus on the Earth': () => {setFocus('Earth')
+					'Fly to View Diurnal': () => {
+						TemporaryStopOrbit();
+						openspace.pathnavigation.flyToHeight('Earth', 10000000, true, flightDuration)
+						openspace.setPropertyValueSingle('NavigationHandler.OrbitalNavigator.FollowAnchorNodeRotation', false)
+						document.getElementById('Show Earth').click();
 					},
-				},
-			};
-
-
-			//shorthand function to fade stick figures
-			function fadeSticks(opacity,functionDuration){
-				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Enabled", true)
-				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Fade",opacity,functionDuration)
-				if (opacity == 0) {
-					setTimeout(() => {
-						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Enabled", false)
-					}, functionDuration*1000)
-				}					
-			}
-			function LabelConstellations(opacity,functionDuration) {
-				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Enabled", true)
-				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Fade",opacity,functionDuration)
-				setTimeout(() => {
-					if (opacity == 0) {
-						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.Labels.Enabled", false)
-					}		
-				}, functionDuration*1000)
-			}
-			//Adding Constellations
-			function AddConstellation(constellationName) {
-				//check if constellation is saved already
-				 if (saveConstellations.indexOf(constellationName) < 0) {
-					//If not then add it
-					saveConstellations.push(constellationName);
-				 }					
-				openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
-			}
-			//Removing Constellations
-			function removeConstellation(constellationName){
-				//check if constellation is saved already
-				var index = saveConstellations.indexOf(constellationName);
-				if (index > -1) {
-					//If yes, then remove it
-					saveConstellations.splice(index, 1);
-				}
-				 //If there are no more saved Constellations, turn them off
-				 //OpenSpace makes it so that if there are no selected constellations it turns them all on
-				if (saveConstellations.length < 1) {
-					fadeSticks(0, duration);
-					setTimeout(() => {
-						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
-					}, duration*1000+100)
-				} 
-				 //Otherwise, just fade them off quickly and bring the rest back
-				if (saveConstellations.length > 0) {
-					fadeSticks(0,0.5);
-					setTimeout(() => {
-						openspace.setPropertyValueSingle("Scene.Constellations.Renderable.ConstellationSelection", saveConstellations)
-						fadeSticks(1,0.5);
-					}, 500)		
-				}
-			}
-			//Stick figures
-			function ConstellationStickButton(constellationName, clickedOrNot){
-				if (clickedOrNot != 'clicked') { 
-					fadeSticks(0,0.5);
-					setTimeout(() => {
-						AddConstellation(constellationName);
-						fadeSticks(1,duration);
-					}, 500)
-					clickedOrNot = 'clicked';
-				} else {
-					setTimeout(() => {						
-						removeConstellation(constellationName);
-					}, 100)		
-					clickedOrNot = '';							
-				}
-				return clickedOrNot;
-			}
-			//Constellation Art
-			function ConstellationImageButton(constellationTag, clickedOrNot) {
-				if (clickedOrNot != 'clicked') {
-					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Enabled', true)
-					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Fade',1,duration)
-					//default white, but you can customize RGB fractions, note that the {} turns into [] here:
-					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.MultiplyColor', [1,1,1])
-					clickedOrNot = 'clicked';
-				} else {
-					openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Fade',0,duration)
-					setTimeout(() => {
-						openspace.setPropertyValueSingle('Scene.ImageConstellation-'+constellationTag+'.Renderable.Enabled', false)
-					}, duration*1000+100)
-					clickedOrNot = '';
-				}
-				return clickedOrNot;
-			}
-			//An Array to keep track of images
-
-			function DeepSkyImage(objectName,filePath,clickedOrNot) {
-				var imageObject = { 
-					Identifier: objectName, 
-					Name: objectName, 
-					Type: "ScreenSpaceImageLocal", 
-					TexturePath: contentPath+filePath
-				};
-				//openspace.setPropertyValueSingle("ScreenSpace.test.UseRadiusAzimuthElevation", true)
-				//openspace.setPropertyValueSingle("ScreenSpace.test.RadiusAzimuthElevation", {2.360000,0.000000,0.000000})
-				if (clickedOrNot != 'clicked') {
-					//remove it first because it will cause problems otherwise.
-					openspace.removeScreenSpaceRenderable(imageObject)
-					openspace.addScreenSpaceRenderable(imageObject)
-					saveImages.push(objectName);
-					openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",0,0)
-					setTimeout(() => {openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",1,duration)},100)
-					if (saveImages.indexOf(objectName) < 0) {
-						//If not then add it
-						saveImages.push(objectName);
-					}		
-					clickedOrNot = 'clicked';
-				} else {
-					openspace.setPropertyValueSingle("ScreenSpace."+objectName+".Scale",0,duration)
-					setTimeout(() => {
-						openspace.removeScreenSpaceRenderable(imageObject)
-						//remove this from the array
-						var index = saveImages.indexOf(objectName);
-						if (index > -1) {
-							//If yes, then remove it
-							saveImages.splice(index, 1);
-						}
-					},duration*1000)
-					clickedOrNot = '';
-				}
-				return clickedOrNot;
-			}
-			
-			var firstConstellationButtons = {
-			//Andromeda, Aries, Auriga, Bootes, Canis Major, Canis Minor, Cassiopeia, Gemini, Leo, Orion, Pegasus, Perseus, Pisces, Taurus, Ursa Major, Ursa Minor, Virgo
-			//These are case sensitive!
-				title: "Jan-Apr Constellations",
-				description: " ",
-				buttons: {
-					'Labels': async () => {
-						if (this.className != 'clicked') { 
-							setTimeout(() => {
-								LabelConstellations(1,duration);
-							}, 100)
+					'Focus on the Earth': () => 
+						{setFocus('Earth')
+						document.getElementById('Show Earth').click();
+					},
+					'Run Diurnal': () => {
+						openspace.time.interpolateTimeRelative(86400,30)
+					},
+					'Orbit': () => {
+						if (this.className != 'clicked') {
+							StartOrbit();
+							this.className = 'clicked';
+							//this.textContent = 'Stop Orbit';
+						} else {
+							StopOrbit();
+							this.className = '';
+							//this.textContent = 'Gentle Orbit';
+						}						
+					},
+					'Fly Beyond Constellations': () => {
+						TemporaryStopOrbit();
+						openspace.pathnavigation.flyToHeight('Earth', 1e19, true, flightDuration)
+						openspace.setPropertyValueSingle('NavigationHandler.OrbitalNavigator.FollowAnchorNodeRotation', true)
+					},
+					'Exoplanets': async () => {
+						if (this.className != 'clicked') {
+							openspace.setPropertyValueSingle('Scene.Exoplanets.Renderable.Enabled', true)
+							openspace.setPropertyValueSingle('Scene.Exoplanets.Renderable.Fade',0,0)
+							openspace.setPropertyValueSingle('Scene.Exoplanets.Renderable.ScaleFactor', 420)
+							openspace.setPropertyValueSingle('Scene.Exoplanets.Renderable.Fade',1,duration)
 							this.className = 'clicked';
 						} else {
+							openspace.setPropertyValueSingle('Scene.Exoplanets.Renderable.Fade',0,duration)
 							setTimeout(() => {
-								LabelConstellations(0,duration);
-							}, 100)
+								openspace.setPropertyValueSingle('Scene.Exoplanets.Renderable.Enabled', false)
+							}, duration*1000+100);
 							this.className = '';
 						}
 					},
-					'Andromeda Stick': async () => {
-						this.className = ConstellationStickButton('Andromeda', this.className);
+					'Fly Beyond the Galaxy': () => {
+						TemporaryStopOrbit();
+						openspace.pathnavigation.flyToHeight('Earth', 5e20, true, flightDuration)
+						openspace.setPropertyValueSingle('NavigationHandler.OrbitalNavigator.FollowAnchorNodeRotation', true)
 					},
-					'Andromeda Image': async () => {
-						this.className = ConstellationImageButton('And', this.className);
-					},
-					'Aries Stick': async () => {
-						this.className = ConstellationStickButton('Aries', this.className);
-					},
-					'Aries Image': async () => {
-						this.className = ConstellationImageButton('Ari', this.className);
-					},
-					'Auriga Stick': async () => {
-						this.className = ConstellationStickButton('Auriga', this.className);
-					},
-					'Auriga Image': async () => {
-						this.className = ConstellationImageButton('Aur', this.className);
-					},
-					'Bootes Stick': async () => {
-						this.className = ConstellationStickButton('Bootes', this.className);
-					},
-					'Bootes Image': async () => {
-						this.className = ConstellationImageButton('Boo', this.className);
-					},
-					'Canis Major Stick': async () => {
-						this.className = ConstellationStickButton('Canis Major', this.className);
-					},
-					'Canis Major Image': async () => {
-						this.className = ConstellationImageButton('CMa', this.className);
-					},
-					'Canis Minor Stick': async () => {
-						this.className = ConstellationStickButton('Canis Minor', this.className);
-					},
-					'Canis Minor Image': async () => {
-						this.className = ConstellationImageButton('CMi', this.className);
-					},
-					'Cassiopeia Stick': async () => {
-						this.className = ConstellationStickButton('Cassiopeia', this.className);
-					},
-					'Cassiopeia Image': async () => {
-						this.className = ConstellationImageButton('Cas', this.className);
-					},
-					'Gemini Stick': async () => {
-						this.className = ConstellationStickButton('Gemini', this.className);
-					},
-					'Gemini Image': async () => {
-						this.className = ConstellationImageButton('Gem', this.className);
-					},
-					'Leo Stick': async () => {
-						this.className = ConstellationStickButton('Leo', this.className);
-					},
-					'Leo Image': async () => {
-						this.className = ConstellationImageButton('Leo', this.className);
-					},
-					'Orion Stick': async () => {
-						this.className = ConstellationStickButton('Orion', this.className);
-					},
-					'Orion Image': async () => {
-						this.className = ConstellationImageButton('Ori', this.className);
-					},
-					'Pegasus Stick': async () => {
-						this.className = ConstellationStickButton('Pegasus', this.className);
-					},
-					'Pegasus Image': async () => {
-						this.className = ConstellationImageButton('Peg', this.className);
-					},
-					'Perseus Stick': async () => {
-						this.className = ConstellationStickButton('Perseus', this.className);
-					},
-					'Perseus Image': async () => {
-						this.className = ConstellationImageButton('Per', this.className);
-					},
-					'Pisces Stick': async () => {
-						this.className = ConstellationStickButton('Pisces', this.className);
-					},
-					'Pisces Image': async () => {
-						this.className = ConstellationImageButton('Psc', this.className);
-					},
-					'Taurus Stick': async () => {
-						this.className = ConstellationStickButton('Taurus', this.className);
-					},
-					'Taurus Image': async () => {
-						this.className = ConstellationImageButton('Tau', this.className);
-					},
-					'Ursa Major Stick': async () => {
-						this.className = ConstellationStickButton('Ursa Major', this.className);
-					},
-					'Ursa Major Image': async () => {
-						this.className = ConstellationImageButton('Uma', this.className);
-					},
-					'Ursa Minor Stick': async () => {
-						this.className = ConstellationStickButton('Ursa Minor', this.className);
-					},
-					'Ursa Minor Image': async () => {
-						this.className = ConstellationImageButton('UMi', this.className);
-					},
-					'Virgo Stick': async () => {
-						this.className = ConstellationStickButton('Virgo', this.className);
-					},
-					'Virgo Image': async () => {
-						this.className = ConstellationImageButton('Vir', this.className);
-					},
-					'_': async () => {
-					//Just a line breaker
-					},
-					'Pleiades': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-
-						//https://hubblesite.org/contents/media/images/2004/20/1562-Image.html?keyword=m45
-						//no spaces in names of files
-						this.className = DeepSkyImage('Pleiades','DeepSky-Pleiades.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)						
+					'Fly to CMB': () => {
+						TemporaryStopOrbit();		
+						openspace.pathnavigation.flyToHeight('Earth', 3e26, true, flightDuration)
+						openspace.setPropertyValueSingle('NavigationHandler.OrbitalNavigator.FollowAnchorNodeRotation', true)
 					},
 				},
 			};
-			
-			var secondConstellationButtons = {
-			//Aquila, Auriga, Bootes, Canis Minor, Cassiopeia, Corona Borealis, Cyguns, Gemini, Hercules, leo, Lyra, Sagittarius, Scorpius, Ursa Major, Ursa Minor, Virgo
-				title: "May-Aug Constellations",
-				description: " ",
-				buttons: {
-					'Labels': async () => {
-						if (this.className != 'clicked') { 
-							setTimeout(() => {
-								LabelConstellations(1,duration);
-							}, 100)
-							this.className = 'clicked';
-						} else {
-							setTimeout(() => {
-								LabelConstellations(0,duration);
-							}, 100)
-							this.className = '';
-						}
-					},
-					'Aquila Stick': async () => {
-						this.className = ConstellationStickButton('Aquila', this.className);
-					},
-					'Aquila Image': async () => {
-						this.className = ConstellationImageButton('Aql', this.className);
-					},
-					'Auriga Stick': async () => {
-						this.className = ConstellationStickButton('Auriga', this.className);
-					},
-					'Auriga Image': async () => {
-						this.className = ConstellationImageButton('Aur', this.className);
-					},
-					'Bootes Stick': async () => {
-						this.className = ConstellationStickButton('Bootes', this.className);
-					},
-					'Bootes Image': async () => {
-						this.className = ConstellationImageButton('Boo', this.className);
-					},
-					'Canis Minor Stick': async () => {
-						this.className = ConstellationStickButton('Canis Minor', this.className);
-					},
-					'Canis Minor Image': async () => {
-						this.className = ConstellationImageButton('CMi', this.className);
-					},
-					'Cassiopeia Stick': async () => {
-						this.className = ConstellationStickButton('Cassiopeia', this.className);
-					},
-					'Cassiopeia Image': async () => {
-						this.className = ConstellationImageButton('Cas', this.className);
-					},
-					'Corona Borealis Stick': async () => {
-						this.className = ConstellationStickButton('Corona Borealis', this.className);
-					},
-					'Corona Borealis Image': async () => {
-						this.className = ConstellationImageButton('CrB', this.className);
-					},
-					'Cygnus Stick': async () => {
-						this.className = ConstellationStickButton('Cygnus', this.className);
-					},
-					'Cygnus Image': async () => {
-						this.className = ConstellationImageButton('Cyg', this.className);
-					},
-					'Gemini Stick': async () => {
-						this.className = ConstellationStickButton('Gemini', this.className);
-					},
-					'Gemini Image': async () => {
-						this.className = ConstellationImageButton('Gem', this.className);
-					},
-					'Hercules Stick': async () => {
-						this.className = ConstellationStickButton('Hercules', this.className);
-					},
-					'Hercules Image': async () => {
-						this.className = ConstellationImageButton('Her', this.className);
-					},
-					'Leo Stick': async () => {
-						this.className = ConstellationStickButton('Leo', this.className);
-					},
-					'Leo Image': async () => {
-						this.className = ConstellationImageButton('Leo', this.className);
-					},
-					'Lyra Stick': async () => {
-						this.className = ConstellationStickButton('Lyra', this.className);
-					},
-					'Lyra Image': async () => {
-						this.className = ConstellationImageButton('Lyr', this.className);
-					},
-					'Sagittarius Stick': async () => {
-						this.className = ConstellationStickButton('Sagittarius', this.className);
-					},
-					'Sagittarius Image': async () => {
-						this.className = ConstellationImageButton('Sgr', this.className);
-					},
-					'Scorpius Stick': async () => {
-						this.className = ConstellationStickButton('Scorpius', this.className);
-					},
-					'Scorpius Image': async () => {
-						this.className = ConstellationImageButton('Sco', this.className);
-					},
-					'Ursa Major Stick': async () => {
-						this.className = ConstellationStickButton('Ursa Major', this.className);
-					},
-					'Ursa Major Image': async () => {
-						this.className = ConstellationImageButton('Uma', this.className);
-					},
-					'Ursa Minor Stick': async () => {
-						this.className = ConstellationStickButton('Ursa Minor', this.className);
-					},
-					'Ursa Minor Image': async () => {
-						this.className = ConstellationImageButton('UMi', this.className);
-					},
-					'Virgo Stick': async () => {
-						this.className = ConstellationStickButton('Virgo', this.className);
-					},
-					'Virgo Image': async () => {
-						this.className = ConstellationImageButton('Vir', this.className);
-					},
-					'_': async () => {
-					//Just a line breaker
-					},
-					'Exoplanet Watch': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
 
-						//https://exoplanets.nasa.gov/exoplanet-watch/about-exoplanet-watch/overview/
-						//no spaces in names of files
-						this.className = DeepSkyImage('ExoplanetWatch','DeepSky-ExoplanetWatch.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)						
-					},
-					'Hercules Globular Cluster': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-
-						//https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-13
-						//no spaces in names of files
-						this.className = DeepSkyImage('HerculesGlobularCluster','DeepSky-HerculesGlobularCluster.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)						
-					},
-					'Kepler-62 f': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-
-						//https://www.jpl.nasa.gov/news/kepler-discovers-its-smallest-habitable-zone-planets
-						//no spaces in names of files
-						this.className = DeepSkyImage('Kepler62f','DeepSky-Kepler62f.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)						
-					},
-					'Pleiades': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-
-						//https://hubblesite.org/contents/media/images/2004/20/1562-Image.html?keyword=m45
-						//no spaces in names of files
-						this.className = DeepSkyImage('Pleiades','DeepSky-Pleiades.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)						
-					},
-					'Ring Nebula': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-
-						//https://stsci-opo.org/STScI-01H82GANSY85GHFY3Y2FN9R65P.png
-						//no spaces in names of files
-						this.className = DeepSkyImage('RingNebula','DeepSky-RingNebula.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)
-					},	
-					'Sagittarius A*': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-
-						////https://chandra.harvard.edu/photo/2022/sgra/
-						//no spaces in names of files
-						this.className = DeepSkyImage('SagittariusA','DeepSky-SagittariusA.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)
-					},						
-					'T Corona Borealis Nova': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-
-						//https://svs.gsfc.nasa.gov/11608
-						//https://universe-of-learning.org/contents/events/science-briefings/2024/preparing-for-the-predicted-t-coronae-borealis-nova
-						//no spaces in names of files
-						this.className = DeepSkyImage('TCoronaBorealisNova','DeepSky-TCoronaBorealisNova.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)
-					},		
-					'Whirlpool Galaxy': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-						//https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/messier-51/
-						//no spaces in names of files
-						this.className = DeepSkyImage('WhirlpoolGalaxy','DeepSky-WhirlpoolGalaxy.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)
-					},	
-				},
-			};
-			
-			var thirdConstellationButtons = {
-			//Andromeda, Aries, Aquila, Auriga, Bootes, Capricorn, Cassiopeia, Corona Borealis, Cygnus, Gemini, Hercules, Lyra, Orion, Pegasus, Perseus, Pisces, Sagittarius, Taurus, Ursa Major, Ursa Minor
-				title: "Sep-Dec Constellations",
-				description: " ",
-				buttons: {
-					'Andromeda Stick': async () => {
-						this.className = ConstellationStickButton('Andromeda', this.className);
-					},
-					'Andromeda Image': async () => {
-						this.className = ConstellationImageButton('And', this.className);
-					},
-					'Aries Stick': async () => {
-						this.className = ConstellationStickButton('Aries', this.className);
-					},
-					'Aries Image': async () => {
-						this.className = ConstellationImageButton('Ari', this.className);
-					},
-					'Aquila Stick': async () => {
-						this.className = ConstellationStickButton('Aquila', this.className);
-					},
-					'Aquila Image': async () => {
-						this.className = ConstellationImageButton('Aql', this.className);
-					},
-					'Auriga Stick': async () => {
-						this.className = ConstellationStickButton('Auriga', this.className);
-					},
-					'Auriga Image': async () => {
-						this.className = ConstellationImageButton('Aur', this.className);
-					},
-					'Bootes Stick': async () => {
-						this.className = ConstellationStickButton('Bootes', this.className);
-					},
-					'Bootes Image': async () => {
-						this.className = ConstellationImageButton('Boo', this.className);
-					},
-					'Capricorn Stick': async () => {
-						this.className = ConstellationStickButton('Capricorn', this.className);
-					},
-					'Capricorn Image': async () => {
-						this.className = ConstellationImageButton('Cap', this.className);
-					},
-					'Cassiopeia Stick': async () => {
-						this.className = ConstellationStickButton('Cassiopeia', this.className);
-					},
-					'Cassiopeia Image': async () => {
-						this.className = ConstellationImageButton('Cas', this.className);
-					},
-					'Corona Borealis Stick': async () => {
-						this.className = ConstellationStickButton('Corona Borealis', this.className);
-					},
-					'Corona Borealis Image': async () => {
-						this.className = ConstellationImageButton('CrB', this.className);
-					},
-					'Cygnus Stick': async () => {
-						this.className = ConstellationStickButton('Cygnus', this.className);
-					},
-					'Cygnus Image': async () => {
-						this.className = ConstellationImageButton('Cyg', this.className);
-					},
-					'Gemini Stick': async () => {
-						this.className = ConstellationStickButton('Gemini', this.className);
-					},
-					'Gemini Image': async () => {
-						this.className = ConstellationImageButton('Gem', this.className);
-					},
-					'Hercules Stick': async () => {
-						this.className = ConstellationStickButton('Hercules', this.className);
-					},
-					'Hercules Image': async () => {
-						this.className = ConstellationImageButton('Her', this.className);
-					},
-					'Lyra Stick': async () => {
-						this.className = ConstellationStickButton('Lyra', this.className);
-					},
-					'Lyra Image': async () => {
-						this.className = ConstellationImageButton('Lyr', this.className);
-					},
-					'Orion Stick': async () => {
-						this.className = ConstellationStickButton('Orion', this.className);
-					},
-					'Orion Image': async () => {
-						this.className = ConstellationImageButton('Ori', this.className);
-					},
-					'Pegasus Stick': async () => {
-						this.className = ConstellationStickButton('Pegasus', this.className);
-					},
-					'Pegasus Image': async () => {
-						this.className = ConstellationImageButton('Peg', this.className);
-					},
-					'Perseus Stick': async () => {
-						this.className = ConstellationStickButton('Perseus', this.className);
-					},
-					'Perseus Image': async () => {
-						this.className = ConstellationImageButton('Per', this.className);
-					},
-					'Pisces Stick': async () => {
-						this.className = ConstellationStickButton('Pisces', this.className);
-					},
-					'Pisces Image': async () => {
-						this.className = ConstellationImageButton('Psc', this.className);
-					},
-					'Sagittarius Stick': async () => {
-						this.className = ConstellationStickButton('Sagittarius', this.className);
-					},
-					'Sagittarius Image': async () => {
-						this.className = ConstellationImageButton('Sgr', this.className);
-					},
-					'Taurus Stick': async () => {
-						this.className = ConstellationStickButton('Taurus', this.className);
-					},
-					'Taurus Image': async () => {
-						this.className = ConstellationImageButton('Tau', this.className);
-					},
-					'Ursa Major Stick': async () => {
-						this.className = ConstellationStickButton('Ursa Major', this.className);
-					},
-					'Ursa Major Image': async () => {
-						this.className = ConstellationImageButton('Uma', this.className);
-					},
-					'Ursa Minor Stick': async () => {
-						this.className = ConstellationStickButton('Ursa Minor', this.className);
-					},
-					'Ursa Minor Image': async () => {
-						this.className = ConstellationImageButton('UMi', this.className);
-					},
-					'_': async () => {
-					//Just a line breaker
-					},
-					'Ring Nebula': async () => {
-						//prevent the button from being interrupted to avoid errors
-						this.disabled = true;
-
-						//https://stsci-opo.org/STScI-01H82GANSY85GHFY3Y2FN9R65P.png
-						//no spaces in names of files
-						this.className = DeepSkyImage('RingNebula','DeepSky-RingNebula.png', this.className);
-
-						//enable button again after
-						setTimeout(()=>{this.disabled = false;},duration*1000)
-					},					
-				},
-			};
-		
-			
 			var programmingButtons = {
 				title: "Programming Buttons",
 				description: "Use this to find your NavState for customized flying sequences",
 				buttons: {
 					'Show Nav State': () => {
 						var navState = openspace.navigation.getNavigationState();
-						console.log(navState);
+						//console.log(navState);
+						ChangeDescription(programmingButtons.title,navState)
+						/*
 						document.getElementById(programmingButtons.title).innerHTML += navState;
 						// Using then() to display result
 						navState.then(x => myDisplay(x));
@@ -1608,6 +1805,7 @@
 						function myDisplay(navObj) {
 							document.getElementById(programmingButtons.title).innerHTML = JSON.stringify(navObj);
 						}
+						*/
 					},
 				},
 			};
@@ -1632,8 +1830,11 @@
 				},
 			};
 			
+//end of buttons			
 			var buttonGroups = [setupButtons,planetZoomButtons,bigDipperButtons,firstConstellationButtons,secondConstellationButtons,thirdConstellationButtons,allConstellationButtons,programmingButtons];
+
 			
+//OpenSpace Connecting and Mapping buttons		
 			function mapButtons(openspace) {
 				buttonGroups.map((action, id) => {
 					var cardIndex = '';
@@ -1646,10 +1847,11 @@
 							const fn = action.buttons[button];
 							cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
 							//add line break after some buttons
-							if (button == 'Pluto Zoom_') {
+							if (button == 'Pluto Zoom_' || button == 'Night Sky Planets' || button == 'Earth Atmosphere' || button == 'Run Diurnal') {
 								cardHTML += '<br />';
 							}	
-							if (button == '_') {
+							//add horizontal line after certain buttons, using the '-' as a tag
+							if (button == 'Ursa Minor Image-' || button == 'Virgo Image-') {
 								cardHTML += '<hr>';
 							}	
 						});
@@ -1661,6 +1863,10 @@
 					}					
 					cardHTML += "</div>";
 					document.getElementById('main').innerHTML += cardHTML;
+					//color these buttons just to start
+					document.getElementById('Show Trails').className = 'Positive';
+					document.getElementById('Show Earth').className = 'Positive';
+					document.getElementById('Run Time').className = 'Positive';
 				})
 			}
 			
@@ -1670,7 +1876,7 @@
 				api.onDisconnect(() => {
 					console.log("disconnected");
 					document.getElementById('container').className = "disconnected";
-					var disconnectedString = "Unable to Connect to OpenSpace: ";
+					var disconnectedString = "Unable to connect, please run OpenSpace: ";
 					disconnectedString += '<input id="ipaddress" type=text placeholder="Enter IP address" /> ';
 					disconnectedString += '<button onClick="connectToOpenSpace();">Connect</button>';
 					document.getElementById('connection-status').innerHTML = disconnectedString;
@@ -1694,15 +1900,71 @@
 			};
 		</script>
 	</head>
+
 	<body>
+		
+		<div class="navbar">
+			<h1>"Constellations Tonight" in OpenSpace
+			<button type="button" id="playMusic">
+			Play BG Music
+			</button>
+			<input style="width:25%" type="range" id="bgVolumeSlider" value="0"></h1>
+			<script>
+				//For Background Music Play/pause and volume slider
+				var bgMusicFile = document.getElementById("bgmusic"); 
+				bgMusicFile.loop = true;
+				var bgVolumeValue = 0;
+				var bgVolumeMax = 100;
+				var bgVolumeMin = 0;
+				var fadeDuration = 1; //in seconds
+				var sliderValue = document.getElementById("bgVolumeSlider");
+				bgMusicButton = document.getElementById("playMusic");
+				// update the volume when the slider is moved
+				bgVolumeSlider.addEventListener("input", (sliderValue) => {
+					bgMusicFile.volume = sliderValue.currentTarget.value / 100;
+					bgVolumeValue = sliderValue.currentTarget.value;
+				});
+				playMusic.addEventListener("click", (e) => {
+					if (bgMusicFile.paused) {
+						bgMusicFile.play()
+						bgMusicButton.classList.add("clicked");
+						document.getElementById("playMusic").innerHTML="Pause BG Music";
+						var fadeAudio = setInterval(() => {
+							bgVolumeValue++;
+							//console.log(bgVolumeValue);
+							bgMusicFile.volume = bgVolumeValue / 100;
+							sliderValue.value = bgVolumeValue;
+							if (bgVolumeValue >= bgVolumeMax) {
+								clearInterval(fadeAudio);
+							}
+						}, fadeDuration*10);				
+					} else {
+						bgMusicButton.classList.remove("clicked");
+						document.getElementById("playMusic").innerHTML="Play BG Music";
+						var fadeAudio = setInterval(() => {
+							bgVolumeValue--;
+							//console.log(bgVolumeValue);
+							bgMusicFile.volume = bgVolumeValue / 100;
+							sliderValue.value = bgVolumeValue;
+							if (bgVolumeValue <= bgVolumeMin) {
+								clearInterval(fadeAudio);
+							}
+						}, fadeDuration*10);
+						setTimeout(() => {
+							bgMusicFile.pause();
+						}, fadeDuration*1000)
+					}
+				});										
+			</script>
+		</div>
 		<div id="container" class="disconnected">
 			<div id="connection-status" class="connection-status">
 				Connect to OpenSpace:
 				<input id='ipaddress' type=text placeholder="Enter IP address" />
 				<button onClick="connectToOpenSpace();">Connect</button>
 			</div>\
-			<h1>"Constellations Tonight" in OpenSpace</h1>
-			<div id="main">
+
+			<div id="main" class="generatedButtons">
 			</div>
 			<script type="text/javascript">
 				connectToOpenSpace('localhost');
