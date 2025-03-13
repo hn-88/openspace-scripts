@@ -16,4 +16,6 @@ Increasing Line Fade Amount to 0.4 increases the length of the trail shown.
 `openspace.setPropertyValue("{planetTrail_solarSystem}.Renderable.Appearance.LineFadeAmount", 0.4)`
 in the console scripting window by hitting \` (backtick) key
 We need to again close the console window by hitting \` again, otherwise keyboard shortcuts like `t`
-to toggle all trails won't work - the keystrokes will be captured by the console. 
+to toggle all trails won't work - the keystrokes will be captured by the console.
+
+* The Sun size was increased to 36x and `Sun glare` was turned off for the Mercury + Sun clip. 
