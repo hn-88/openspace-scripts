@@ -1,0 +1,257 @@
+<html>
+	<!-- require this so that apostrophes don't become all weird. -->
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<head>
+			
+		<title>OpenSpace Keyframe concatenation</title>
+		<link rel="stylesheet" type="text/css" href="main2.css">
+		<script type="text/javascript" src="openspace-api.js"></script>
+		<!--Making it easier to write and edit Presenter Messages/Prompts.-->
+		<script type="text/javascript" src="PresenterMessages.js"></script>
+		<script type="text/javascript">
+            // Hari Nandakumar Sep 2025            
+            // Modified from the code by    			
+            //by Jeff Nee at NASA's Museum & Informal Education Alliance at JPL
+			//Last updated: May 2024
+			//At the bottom of the page are the button messages that you can customize for prenters, search for "var buttonMessages"
+
+			//Thanks to ChatGPT for some code.
+			
+			//These are variables to customize for your own dome as needed/desired:
+			//wherever your content will be on your local machine
+			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
+			//default duration for fades and flying:
+			const duration = 1;		
+			const flightDuration = 15;
+			//Note this is the default tilt for the single fisheye config for OpenSpace
+			var defaultTilt =27;
+			//Your coordinates, default is set to JPL in Pasadena, CA
+			var defaultLatitude = 14.1983;
+			var defaultLongitude = 74.1753;
+			var defaultAltitude = 1500;
+			//openspace.globebrowsing.goToGeo('Earth',34.1983,-118.1753,1000)
+			//This was eyeballed by the position of Polaris then using the "Show Nav State" button
+			var lookUpPitch = 2.0425456185375848;
+			var lookUpUp = [-0.25832485826551366,-0.49922160959589273,-0.8270707660863061];
+			var lookUpYaw = 0.0018312094802227185;
+			var lowPosition = [-2491056.5456290348,-4650613.762704544,3585169.2978792596];
+			var highPosition = [-2529914.3964139516,-4723158.425440807,3641094.152005422];
+			var defaultNavigationState = {
+				Anchor:'Earth',
+				Pitch:lookUpPitch,
+				Position:lowPosition,
+				Up:lookUpUp,
+				Yaw:lookUpYaw,
+			};
+			var inSpaceNavigationState = {
+				Anchor:'Earth',
+				Pitch:lookUpPitch,
+				Position:highPosition,
+				Up:lookUpUp,
+				Yaw:lookUpYaw,
+			};			
+			//You might also want to adjust the Earth Texture layers, Ctrl+F for "EarthTexturelayers"
+
+
+			//These are functional variables that are needed for the interface to work
+			//resetting the openspace interface:
+			var openspace = null;
+			//array to keep track of loaded images
+			
+			function ChangeDescription(sectionName,presenterScript) {
+				//function to display a presenter script when a button is pressed
+				//clear it
+				document.getElementById(sectionName).innerHTML = "";
+				//Then add the text
+				document.getElementById(sectionName).innerHTML += presenterScript;
+				//This is specifcially for the NavState Programming button, turning an object into a string:
+				if (typeof presenterScript !== "string") {
+					presenterScript.then(x => myDisplay(x));
+					function myDisplay(navObj) {
+						document.getElementById(sectionName).innerHTML = JSON.stringify(navObj);
+					}
+				}
+			}
+			
+
+			
+			var setFocus = (focus) => {
+				openspace.setPropertyValue('NavigationHandler.OrbitalNavigator.Anchor', focus);
+				openspace.setPropertyValue('NavigationHandler.OrbitalNavigator.RetargetAnchor', null);
+			}
+			//functions to start and stop rotation of the camera:
+			var rotateCamera = 0;
+			function StartOrbit() {
+				rotateCamera = 1;
+				var globalRotation = setInterval(()=>{
+					openspace.navigation.addGlobalRotation(1,0)
+					if (rotateCamera != 1) {
+						clearInterval(globalRotation);
+						openspace.navigation.addGlobalRotation(0,0)
+					}
+				},500);
+			}
+
+			function StopOrbit() {
+				rotateCamera = 0;
+			}
+			function TemporaryStopOrbit(){
+				if (rotateCamera == 1) {
+					//stop orbit first
+					StopOrbit();
+					document.getElementById('Orbit').className = '';
+					//if it was already going, assume that you want to restart it after the flight
+					setTimeout(() => {
+						StartOrbit();
+						document.getElementById('Orbit').className = 'clicked';
+					},flightDuration*1000+1000)
+				}
+			}
+			function findMessageByButtonName(array, targetButtonName) {
+				for (let i = 0; i < array.length; i++) {
+					if (array[i].buttonName === targetButtonName) {
+						return array[i].message;
+					}
+				}
+				return "No message";  // Return null if no match is found
+			}
+
+//buttons start here
+			
+
+			var programmingButtons = {
+				title: "Programming Buttons",
+				description: "Use this to find your NavState for customized flying sequences",
+				buttons: {
+					'Show Nav State': () => {
+						var navState = openspace.navigation.getNavigationState();
+						//console.log(navState);
+						ChangeDescription(programmingButtons.title,navState)
+						/*
+						document.getElementById(programmingButtons.title).innerHTML += navState;
+						// Using then() to display result
+						navState.then(x => myDisplay(x));
+
+						// Funtion to run when the Promise is settled:
+						function myDisplay(navObj) {
+							document.getElementById(programmingButtons.title).innerHTML = JSON.stringify(navObj);
+						}
+						*/
+					},
+				},
+			};
+			
+			var templateButtons = {
+				title: "title_name",
+				description: " ",
+				buttons: {
+					'button1': () => {
+					},
+					'togglebutton1': async () => {
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+							}, duration*1000+100)
+							this.className = '';
+						}
+					},
+				},
+			};
+			
+//end of buttons			
+			var buttonGroups = [programmingButtons];
+
+			
+//OpenSpace Connecting and Mapping buttons		
+			function mapButtons(openspace) {
+				buttonGroups.map((action, id) => {
+					var cardIndex = '';
+					if( id % 2 == 1 ) {
+						cardIndex = "1";
+					}
+					var cardHTML = "<div class='card" + cardIndex +"'><h2>" + action.title + "</h2>";
+					if (action.buttons) {
+						Object.keys(action.buttons).map(button => {
+							const fn = action.buttons[button];
+							cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
+							//add line break after some buttons
+							if (button == 'Pluto Zoom_' || button == 'Night Sky Planets' || button == 'Earth Atmosphere' || button == 'Run Diurnal') {
+								cardHTML += '<br />';
+							}	
+							//add horizontal line after certain buttons, using the '-' as a tag
+							if (button == 'Ursa Minor Image-' || button == 'Virgo Image-') {
+								cardHTML += '<hr>';
+							}	
+						});
+					}
+					if (action.description) {
+						action.description.split('\n').map(item => {
+							cardHTML += "<p id='" + action.title + "'>" + item + "</p>";
+						});
+					}					
+					cardHTML += "</div>";
+					document.getElementById('main').innerHTML += cardHTML;
+					//color these buttons just to start
+					document.getElementById('Show Trails').className = 'Positive';
+					document.getElementById('Show Earth').className = 'Positive';
+					document.getElementById('Run Time').className = 'Positive';
+				})
+			}
+			
+			var connectToOpenSpace = () => {
+				var host = document.getElementById('ipaddress').value;
+				var api = window.openspaceApi(host, 4682);
+				api.onDisconnect(() => {
+					console.log("disconnected");
+					document.getElementById('container').className = "disconnected";
+					var disconnectedString = "Unable to connect, please run OpenSpace: ";
+					disconnectedString += '<input id="ipaddress" type=text placeholder="Enter IP address" /> ';
+					disconnectedString += '<button onClick="connectToOpenSpace();">Connect</button>';
+					document.getElementById('connection-status').innerHTML = disconnectedString;
+					openspace = null;
+				});
+				api.onConnect(async () => {
+					try {
+						document.getElementById('container').className = "connected";
+						document.getElementById('connection-status').innerHTML = "Connected to OpenSpace";
+						openspace = await api.library();
+						console.log('connected');
+						//wipe the page first before building the buttons
+						document.getElementById('main').innerHTML = '';
+						mapButtons(openspace);
+					} catch (e) {
+						console.log('OpenSpace library could not be loaded: Error: \n', e)
+						return;
+					}
+				})
+				api.connect();
+			};
+		</script>
+	</head>
+
+	<body>
+		
+		<div class="navbar">
+			<h1>Keyframe concatenation in OpenSpace
+			
+		</div>
+		<div id="container" class="disconnected">
+			<div id="connection-status" class="connection-status">
+				Connect to OpenSpace:
+				<input id='ipaddress' type=text placeholder="Enter IP address" />
+				<button onClick="connectToOpenSpace();">Connect</button>
+			</div>\
+
+			<div id="main" class="generatedButtons">
+			</div>
+			<script type="text/javascript">
+				connectToOpenSpace('localhost');
+			</script>
+
+			<p>Have questions?  Need help?  Email: <a href="mailto:webmaster@saispace.in">webmaster@saispace.in</a></p>
+		</div>
+	</body>
+</html>
