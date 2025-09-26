@@ -138,6 +138,32 @@
 						}
 						*/
 					},
+					'Add Camera Keyframe': () => {
+						var cameraKeyframe = openspace.keyframeRecording.addCameraKeyframe(20);
+						//console.log(navState);
+						ChangeDescription(programmingButtons.title,cameraKeyframe)
+						/*
+						document.getElementById(programmingButtons.title).innerHTML += navState;
+						Logo
+Search docs
+Getting Started
+Using OpenSpace
+Profiles
+Content
+Building Content
+Reference
+Contribute
+Glossary
+About
+// Using then() to display result
+						navState.then(x => myDisplay(x));
+
+						// Funtion to run when the Promise is settled:
+						function myDisplay(navObj) {
+							document.getElementById(programmingButtons.title).innerHTML = JSON.stringify(navObj);
+						}
+						*/
+					},
 				},
 			};
 			
