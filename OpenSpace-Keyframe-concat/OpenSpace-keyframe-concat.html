@@ -56,7 +56,11 @@
 			//These are functional variables that are needed for the interface to work
 			//resetting the openspace interface:
 			var openspace = null;
-			//array to keep track of loaded images
+
+			// Array to store up to 20 keyframes
+            var keyframes = new Array(20).fill(null);
+
+            
 			
 			function ChangeDescription(sectionName,presenterScript) {
 				//function to display a presenter script when a button is pressed
@@ -117,6 +121,216 @@
 			}
 
 //buttons start here
+
+            // Define buttons for saving keyframes
+            var keyframeButtons = {
+                title: "Keyframe Recorder",
+                description: "Save navigation states with optional sim-time to next keyframe",
+                buttons: {
+                    'Save keyframe 1': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[0] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime1').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 1 with sim-time ${keyframes[0].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 2': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[1] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime2').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 2 with sim-time ${keyframes[1].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 3': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[2] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime3').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 3 with sim-time ${keyframes[2].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 4': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[3] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime4').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 4 with sim-time ${keyframes[3].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 5': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[4] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime5').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 5 with sim-time ${keyframes[4].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 6': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[5] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime6').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 6 with sim-time ${keyframes[5].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 7': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[6] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime7').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 7 with sim-time ${keyframes[6].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 8': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[7] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime8').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 8 with sim-time ${keyframes[7].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 9': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[8] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime9').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 9 with sim-time ${keyframes[8].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 10': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[9] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime10').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 10 with sim-time ${keyframes[9].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 11': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[10] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime11').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 11 with sim-time ${keyframes[10].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 12': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[11] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime12').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 12 with sim-time ${keyframes[11].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 13': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[12] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime13').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 13 with sim-time ${keyframes[12].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 14': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[13] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime14').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 14 with sim-time ${keyframes[13].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 15': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[14] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime15').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 15 with sim-time ${keyframes[14].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 16': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[15] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime16').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 16 with sim-time ${keyframes[15].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 17': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[16] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime17').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 17 with sim-time ${keyframes[16].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 18': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[17] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime18').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 18 with sim-time ${keyframes[17].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 19': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[18] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime19').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 19 with sim-time ${keyframes[18].simtime} sec`);
+                      });
+                    },
+                    'Save keyframe 20': () => {
+                      var navState = openspace.navigation.getNavigationState();
+                      navState.then(ns => {
+                        keyframes[19] = {
+                          nav: ns,
+                          simtime: document.getElementById('simtime20').value || 0
+                        };
+                        ChangeDescription(keyframeButtons.title, `Saved keyframe 20 with sim-time ${keyframes[19].simtime} sec`);
+                      });
+                    },
+                  },
+            }; // var keyframeButtons
+
+
 			
 
 			var programmingButtons = {
@@ -127,42 +341,13 @@
 						var navState = openspace.navigation.getNavigationState();
 						//console.log(navState);
 						ChangeDescription(programmingButtons.title,navState)
-						/*
-						document.getElementById(programmingButtons.title).innerHTML += navState;
-						// Using then() to display result
-						navState.then(x => myDisplay(x));
-
-						// Funtion to run when the Promise is settled:
-						function myDisplay(navObj) {
-							document.getElementById(programmingButtons.title).innerHTML = JSON.stringify(navObj);
-						}
-						*/
+						
 					},
 					'Add Camera Keyframe': () => {
 						var cameraKeyframe = openspace.keyframeRecording.addCameraKeyframe(20);
 						//console.log(navState);
 						ChangeDescription(programmingButtons.title,cameraKeyframe)
-						/*
-						document.getElementById(programmingButtons.title).innerHTML += navState;
-						Logo
-Search docs
-Getting Started
-Using OpenSpace
-Profiles
-Content
-Building Content
-Reference
-Contribute
-Glossary
-About
-// Using then() to display result
-						navState.then(x => myDisplay(x));
-
-						// Funtion to run when the Promise is settled:
-						function myDisplay(navObj) {
-							document.getElementById(programmingButtons.title).innerHTML = JSON.stringify(navObj);
-						}
-						*/
+						openspace.keyframeRecording.saveSequence("seqfilename")
 					},
 				},
 			};
@@ -188,7 +373,7 @@ About
 			};
 			
 //end of buttons			
-			var buttonGroups = [programmingButtons];
+			var buttonGroups = [programmingButtons, keyframeButtons];
 
 			
 //OpenSpace Connecting and Mapping buttons		
@@ -202,7 +387,16 @@ About
 					if (action.buttons) {
 						Object.keys(action.buttons).map(button => {
 							const fn = action.buttons[button];
-							cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
+							if (button.startsWith("Save keyframe")) {
+                                let index = button.split(" ")[2]; // gets "1".."20"
+                                cardHTML += '<div class="keyframe-row">';
+                                cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
+                                cardHTML += ' <input type="number" id="simtime' + index + '" placeholder="sim-time (sec)" style="width:120px; margin-left:10px;">';
+                                cardHTML += '</div>';
+                            } else {
+                                cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
+                            }
+
 							//add line break after some buttons
 							if (button == 'Pluto Zoom_' || button == 'Night Sky Planets' || button == 'Earth Atmosphere' || button == 'Run Diurnal') {
 								cardHTML += '<br />';
@@ -220,10 +414,7 @@ About
 					}					
 					cardHTML += "</div>";
 					document.getElementById('main').innerHTML += cardHTML;
-					//color these buttons just to start
-					document.getElementById('Show Trails').className = 'Positive';
-					document.getElementById('Show Earth').className = 'Positive';
-					document.getElementById('Run Time').className = 'Positive';
+					
 				})
 			}
 			
@@ -277,7 +468,91 @@ About
 				connectToOpenSpace('localhost');
 			</script>
 
-			<p>Have questions?  Need help?  Email: <a href="mailto:webmaster@saispace.in">webmaster@saispace.in</a></p>
+<button id="SaveAllKeyframes" onclick="saveAllKeyframes()">Save Sequence as OSRECTXT</button>
+
+<script>
+// Convert OpenSpace timestamp string "YYYY MON DD HH:MM:SS" to J2000 seconds
+function timestampToJ2000(ts) {
+  // J2000 epoch: 2000-01-01 12:00:00 UTC
+  const j2000 = Date.UTC(2000, 0, 1, 12, 0, 0);
+
+  // Parse "2025 SEP 26 08:33:07"
+  const parts = ts.trim().split(/\s+/);
+  const year = parseInt(parts[0]);
+  const monthStr = parts[1].toUpperCase();
+  const monthNames = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  const month = monthNames.indexOf(monthStr);
+  const day = parseInt(parts[2]);
+  const hms = parts[3].split(":").map(Number);
+
+  const utcMs = Date.UTC(year, month, day, hms[0], hms[1], hms[2]);
+  return (utcMs - j2000) / 1000; // seconds since J2000
+}
+
+// Placeholder: derive quaternion from nav state
+// OpenSpace nav has Pitch, Yaw, Up; you'd normally need full rotation → quaternion math
+// Here I’ll stub with Up vector mapped into a quaternion-like 4-tuple
+function navToQuaternion(nav) {
+  // This is not mathematically perfect, but a placeholder until we confirm what OpenSpace returns
+  const up = nav.Up || [0,0,1];
+  const pitch = nav.Pitch || 0;
+  const yaw = nav.Yaw || 0;
+  // Simple dummy quaternion (needs replacement with actual conversion)
+  return [up[0], up[1], up[2], 1];
+}
+
+function saveAllKeyframes() {
+  const saved = keyframes.filter(k => k !== null);
+
+  let lines = saved.map((k, idx) => {
+    const nav = k.nav["1"] || k.nav;  // OpenSpace wraps navigation inside "1": {..}
+    const simtime = k.simtime || 0;
+    const j2000 = timestampToJ2000(nav.Timestamp);
+    const pos = nav.Position || [0,0,0];
+    const quat = navToQuaternion(nav);
+    const anchor = nav.Anchor || "Earth";
+
+    return [
+      "camera",
+      simtime,
+      j2000,
+      pos[0], pos[1], pos[2],
+      quat[0], quat[1], quat[2], quat[3],
+      "F",
+      anchor
+    ].join(" ");
+  });
+
+  // Format datetime for filename
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const timestamp = [
+    now.getFullYear(),
+    pad(now.getMonth() + 1),
+    pad(now.getDate()),
+    pad(now.getHours()),
+    pad(now.getMinutes()),
+    pad(now.getSeconds())
+  ].join("-");
+
+  const filename = `concat-${timestamp}.osrectxt`;
+
+  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+
+
+
+
+			<p>Contact Email: <a href="mailto:webmaster@saispace.in">webmaster@saispace.in</a></p>
 		</div>
 	</body>
 </html>
