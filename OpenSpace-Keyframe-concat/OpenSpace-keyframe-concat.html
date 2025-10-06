@@ -348,8 +348,17 @@
 						var cameraKeyframe = openspace.keyframeRecording.addCameraKeyframe(20);
 						//console.log(navState);
 						ChangeDescription(programmingButtons.title,cameraKeyframe);
+						const timestamp = [
+						    now.getFullYear(),
+						    pad(now.getMonth() + 1),
+						    pad(now.getDate()),
+						    pad(now.getHours()),
+						    pad(now.getMinutes()),
+						    pad(now.getSeconds())
+						  ].join("-");
 						const filename = `concat-${timestamp}.osrectxt`;
 						const pathname = recordingsPath + filename;
+						console.log(pathname);
 						openspace.keyframeRecording.saveSequence(pathname);
 					},
 				},
@@ -559,6 +568,7 @@ function saveAllKeyframes() {
 		</div>
 	</body>
 </html>
+
 
 
 
