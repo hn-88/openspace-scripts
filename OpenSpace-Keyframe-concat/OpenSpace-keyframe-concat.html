@@ -391,7 +391,7 @@
                                 let index = button.split(" ")[2]; // gets "1".."20"
                                 cardHTML += '<div class="keyframe-row">';
                                 cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
-                                cardHTML += ' <input type="number" id="simtime' + index + '" value=' + index*10 + ' style="width:120px; margin-left:10px;"><label for="simtime' + index + '">sim-time (sec)</label>';
+                                cardHTML += ' <input type="number" id="simtime' + index + '" value=' + (index-1)*10 + ' style="width:120px; margin-left:10px;"><label for="simtime' + index + '">sim-time (sec)</label>';
                                 cardHTML += '</div>';
                             } else {
                                 cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
@@ -556,4 +556,5 @@ function saveAllKeyframes() {
 		</div>
 	</body>
 </html>
+
 
