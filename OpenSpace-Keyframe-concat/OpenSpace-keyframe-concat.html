@@ -20,6 +20,7 @@
 			//These are variables to customize for your own dome as needed/desired:
 			//wherever your content will be on your local machine
 			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
+			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings/";
 			//default duration for fades and flying:
 			const duration = 1;		
 			const flightDuration = 15;
@@ -346,8 +347,10 @@
 					'Add Camera Keyframe': () => {
 						var cameraKeyframe = openspace.keyframeRecording.addCameraKeyframe(20);
 						//console.log(navState);
-						ChangeDescription(programmingButtons.title,cameraKeyframe)
-						openspace.keyframeRecording.saveSequence("seqfilename")
+						ChangeDescription(programmingButtons.title,cameraKeyframe);
+						const filename = `concat-${timestamp}.osrectxt`;
+						const pathname = recordingsPath + filename;
+						openspace.keyframeRecording.saveSequence(pathname);
 					},
 				},
 			};
@@ -556,5 +559,6 @@ function saveAllKeyframes() {
 		</div>
 	</body>
 </html>
+
 
 
