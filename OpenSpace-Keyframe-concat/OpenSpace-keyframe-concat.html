@@ -338,11 +338,9 @@
 						ChangeDescription(programmingButtons.title,navState)
 						
 					},
-					'Add Camera Keyframe': () => {
-						// var cameraKeyframe = openspace.keyframeRecording.addCameraKeyframe(20);
-						//console.log(navState);
-						// ChangeDescription(programmingButtons.title,cameraKeyframe);
-						
+					'Clear Keyframe Sequence': () => {
+						openspace.keyframeRecording.newSequence();
+						ChangeDescription(programmingButtons.title,"Keyframe Sequence cleared.");						
 					},
 				},
 			};
@@ -551,6 +549,7 @@ function saveAllKeyframes() {
 		</div>
 	</body>
 </html>
+
 
 
 
