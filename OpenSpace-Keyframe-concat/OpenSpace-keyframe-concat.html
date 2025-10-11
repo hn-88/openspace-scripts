@@ -129,13 +129,8 @@
                 description: "Save navigation states with optional sim-time to next keyframe",
                 buttons: {
                     'Save keyframe 1': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[0] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime1').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 1 with sim-time ${keyframes[0].simtime} sec`);
+					  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime1').value);
+                      ChangeDescription(keyframeButtons.title, openspace.keyframeRecording.keyframes());
                       });
                     },
                     'Save keyframe 2': () => {
@@ -570,6 +565,7 @@ function saveAllKeyframes() {
 		</div>
 	</body>
 </html>
+
 
 
 
