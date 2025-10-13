@@ -25,8 +25,8 @@
 			//resetting the openspace interface:
 			var openspace = null;
 
-			// Array to store up to 20 keyframes
-            var keyframes = new Array(20).fill(null);
+			// Array to store up to 20 keyframes timestamps
+            var keyframetimes = new Array(20).fill(null);
 
             
 			
@@ -87,6 +87,34 @@
 				}
 				return "No message";  // Return null if no match is found
 			}
+            async function addTimeDeltaScript(index) {
+                try {
+                    // Wait for the promises to resolve
+                    let prevSimTime = parseFloat(document.getElementById('simtime' + (index - 1)).value);
+                    let currSimTime = parseFloat(document.getElementById('simtime' + index).value);
+
+                    // Wait for currentTime() to resolve (assuming it's a Promise)
+                    let prevKeyframeTimeObj = await keyframetimes[index - 1];  // Wait for previous keyframe time to resolve
+                    let currKeyframeTimeObj = await keyframetimes[index - 2];  // Wait for previous-2 keyframe time to resolve
+
+                    let prevKeyframeTime = prevKeyframeTimeObj[1];  // Accessing the value from the object
+                    let currKeyframeTime = currKeyframeTimeObj[1];  // Accessing the value from the object
+
+                    // Calculate the time differences
+                    let timeSimdiff = currSimTime - prevSimTime;
+                    let timeRecdiff = prevKeyframeTime - currKeyframeTime; 
+
+                    let deltatime = Math.trunc(timeRecdiff / timeSimdiff);
+
+                    // Create the script string for this index
+                    let scriptstring = "openspace.time.setDeltaTime(" + deltatime + ")";
+                    openspace.keyframeRecording.addScriptKeyframe(prevSimTime, scriptstring);
+                    // Output or use scriptstring as needed for each index
+                    // console.log(`Index ${index}: ${scriptstring}`);
+                } catch (error) {
+                    console.error("Error processing time delta:", error);
+                }
+            }
 
 //buttons start here
 
@@ -96,105 +124,145 @@
 			  description: "Save navigation states with optional sim-time to next keyframe",
 			  buttons: {
 			    'Save keyframe 1': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime1').value);
-				  document.getElementById('keyframeStatus1').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime1').value;
-				},
-				'Save keyframe 2': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime2').value);
-				  document.getElementById('keyframeStatus2').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime2').value;
-				},
-				'Save keyframe 3': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime3').value);
-				  document.getElementById('keyframeStatus3').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime3').value;
-				},
-				'Save keyframe 4': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime4').value);
-				  document.getElementById('keyframeStatus4').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime4').value;
-				},
-				'Save keyframe 5': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime5').value);
-				  document.getElementById('keyframeStatus5').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime5').value;
-				},
-				'Save keyframe 6': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime6').value);
-				  document.getElementById('keyframeStatus6').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime6').value;
-				},
-				'Save keyframe 7': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime7').value);
-				  document.getElementById('keyframeStatus7').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime7').value;
-				},
-				'Save keyframe 8': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime8').value);
-				  document.getElementById('keyframeStatus8').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime8').value;
-				},
-				'Save keyframe 9': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime9').value);
-				  document.getElementById('keyframeStatus9').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime9').value;
-				},
-				'Save keyframe 10': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime10').value);
-				  document.getElementById('keyframeStatus10').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime10').value;
-				},
-				'Save keyframe 11': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime11').value);
-				  document.getElementById('keyframeStatus11').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime11').value;
-				},
-				'Save keyframe 12': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime12').value);
-				  document.getElementById('keyframeStatus12').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime12').value;
-				},
-				'Save keyframe 13': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime13').value);
-				  document.getElementById('keyframeStatus13').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime13').value;
-				},
-				'Save keyframe 14': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime14').value);
-				  document.getElementById('keyframeStatus14').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime14').value;
-				},
-				'Save keyframe 15': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime15').value);
-				  document.getElementById('keyframeStatus15').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime15').value;
-				},
-				'Save keyframe 16': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime16').value);
-				  document.getElementById('keyframeStatus16').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime16').value;
-				},
-				'Save keyframe 17': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime17').value);
-				  document.getElementById('keyframeStatus17').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime17').value;
-				},
-				'Save keyframe 18': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime18').value);
-				  document.getElementById('keyframeStatus18').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime18').value;
-				},
-				'Save keyframe 19': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime19').value);
-				  document.getElementById('keyframeStatus19').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime19').value;
-				},
-				'Save keyframe 20': () => {
-				  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime20').value);
-				  document.getElementById('keyframeStatus20').textContent =
-					'Keyframe saved at ' + document.getElementById('simtime20').value;
-				}
+                  keyframetimes[0] = openspace.time.currentTime();
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime1').value);
+                  document.getElementById('keyframeStatus1').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime1').value;
+                },
+                'Save keyframe 2': () => {
+                  keyframetimes[1] = openspace.time.currentTime();
+                  addTimeDeltaScript(2);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime2').value);
+                  document.getElementById('keyframeStatus2').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime2').value;
+                },
+                'Save keyframe 3': () => {
+                  keyframetimes[2] = openspace.time.currentTime();
+                  addTimeDeltaScript(3);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime3').value);
+                  document.getElementById('keyframeStatus3').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime3').value;
+                },
+                'Save keyframe 4': () => {
+                  keyframetimes[3] = openspace.time.currentTime();
+                  addTimeDeltaScript(4);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime4').value);
+                  document.getElementById('keyframeStatus4').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime4').value;
+                },
+                'Save keyframe 5': () => {
+                  keyframetimes[4] = openspace.time.currentTime();
+                  addTimeDeltaScript(5);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime5').value);
+                  document.getElementById('keyframeStatus5').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime5').value;
+                },
+                'Save keyframe 6': () => {
+                  keyframetimes[5] = openspace.time.currentTime();
+                  addTimeDeltaScript(6);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime6').value);
+                  document.getElementById('keyframeStatus6').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime6').value;
+                },
+                'Save keyframe 7': () => {
+                  keyframetimes[6] = openspace.time.currentTime();
+                  addTimeDeltaScript(7);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime7').value);
+                  document.getElementById('keyframeStatus7').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime7').value;
+                },
+                'Save keyframe 8': () => {
+                  keyframetimes[7] = openspace.time.currentTime();
+                  addTimeDeltaScript(8);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime8').value);
+                  document.getElementById('keyframeStatus8').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime8').value;
+                },
+                'Save keyframe 9': () => {
+                  keyframetimes[8] = openspace.time.currentTime();
+                  addTimeDeltaScript(9);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime9').value);
+                  document.getElementById('keyframeStatus9').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime9').value;
+                },
+                'Save keyframe 10': () => {
+                  keyframetimes[9] = openspace.time.currentTime();
+                  addTimeDeltaScript(10);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime10').value);
+                  document.getElementById('keyframeStatus10').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime10').value;
+                },
+                'Save keyframe 11': () => {
+                  keyframetimes[10] = openspace.time.currentTime();
+                  addTimeDeltaScript(11);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime11').value);
+                  document.getElementById('keyframeStatus11').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime11').value;
+                },
+                'Save keyframe 12': () => {
+                  keyframetimes[11] = openspace.time.currentTime();
+                  addTimeDeltaScript(12);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime12').value);
+                  document.getElementById('keyframeStatus12').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime12').value;
+                },
+                'Save keyframe 13': () => {
+                  keyframetimes[12] = openspace.time.currentTime();
+                  addTimeDeltaScript(13);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime13').value);
+                  document.getElementById('keyframeStatus13').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime13').value;
+                },
+                'Save keyframe 14': () => {
+                  keyframetimes[13] = openspace.time.currentTime();
+                  addTimeDeltaScript(14);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime14').value);
+                  document.getElementById('keyframeStatus14').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime14').value;
+                },
+                'Save keyframe 15': () => {
+                  keyframetimes[14] = openspace.time.currentTime();
+                  addTimeDeltaScript(15);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime15').value);
+                  document.getElementById('keyframeStatus15').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime15').value;
+                },
+                'Save keyframe 16': () => {
+                  keyframetimes[15] = openspace.time.currentTime();
+                  addTimeDeltaScript(16);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime16').value);
+                  document.getElementById('keyframeStatus16').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime16').value;
+                },
+                'Save keyframe 17': () => {
+                  keyframetimes[16] = openspace.time.currentTime();
+                  addTimeDeltaScript(17);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime17').value);
+                  document.getElementById('keyframeStatus17').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime17').value;
+                },
+                'Save keyframe 18': () => {
+                  keyframetimes[17] = openspace.time.currentTime();
+                  addTimeDeltaScript(18);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime18').value);
+                  document.getElementById('keyframeStatus18').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime18').value;
+                },
+                'Save keyframe 19': () => {
+                  keyframetimes[18] = openspace.time.currentTime();
+                  addTimeDeltaScript(19);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime19').value);
+                  document.getElementById('keyframeStatus19').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime19').value;
+                },
+                'Save keyframe 20': () => {
+                  keyframetimes[19] = openspace.time.currentTime();
+                  addTimeDeltaScript(20);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime20').value);
+                  document.getElementById('keyframeStatus20').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime20').value;
+                },
+
 
 			  },
 			};
@@ -259,7 +327,7 @@
 							const fn = action.buttons[button];
 							if (button.startsWith("Save keyframe")) {
                                 let index = button.split(" ")[2]; // gets "1".."20"
-                                cardHTML += '<div class="keyframe-row">';
+                                cardHTML += '<div>';
                                 cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
                                 cardHTML += ' <input type="number" id="simtime' + index + '" value=' + (index-1)*10 + ' style="width:120px; margin-left:10px;"><label for="simtime' + index + '">sim-time (sec)</label>';
 								cardHTML += '<span id="keyframeStatus' + index + '" style="margin-left:10px;"></span>';
@@ -267,15 +335,7 @@
                             } else {
                                 cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
                             }
-
-							//add line break after some buttons
-							if (button == 'Pluto Zoom_' || button == 'Night Sky Planets' || button == 'Earth Atmosphere' || button == 'Run Diurnal') {
-								cardHTML += '<br />';
-							}	
-							//add horizontal line after certain buttons, using the '-' as a tag
-							if (button == 'Ursa Minor Image-' || button == 'Virgo Image-') {
-								cardHTML += '<hr>';
-							}	
+							
 						});
 					}
 					if (action.description) {
@@ -372,22 +432,9 @@ async function saveSequence() {
   }
 }
 
-
 </script>
-
-
-
 
 			<p>Please report issues at <a href="https://github.com/hn-88/openspace-scripts/issues" target=_blank>https://github.com/hn-88/openspace-scripts/issues</a></p>
 		</div>
 	</body>
 </html>
-
-
-
-
-
-
-
-
-
