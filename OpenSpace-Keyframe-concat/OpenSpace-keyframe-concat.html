@@ -19,40 +19,8 @@
 			//wherever your content will be on your local machine
 			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
 			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings/";
-			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this. \n On Windows, the path should have / instead of backslash - for example, \n D:/OpenSpace/user/recordings');
-			//default duration for fades and flying:
-			const duration = 1;		
-			const flightDuration = 15;
-			//Note this is the default tilt for the single fisheye config for OpenSpace
-			var defaultTilt =27;
-			//Your coordinates, default is set to JPL in Pasadena, CA
-			var defaultLatitude = 14.1983;
-			var defaultLongitude = 74.1753;
-			var defaultAltitude = 1500;
-			//openspace.globebrowsing.goToGeo('Earth',34.1983,-118.1753,1000)
-			//This was eyeballed by the position of Polaris then using the "Show Nav State" button
-			var lookUpPitch = 2.0425456185375848;
-			var lookUpUp = [-0.25832485826551366,-0.49922160959589273,-0.8270707660863061];
-			var lookUpYaw = 0.0018312094802227185;
-			var lowPosition = [-2491056.5456290348,-4650613.762704544,3585169.2978792596];
-			var highPosition = [-2529914.3964139516,-4723158.425440807,3641094.152005422];
-			var defaultNavigationState = {
-				Anchor:'Earth',
-				Pitch:lookUpPitch,
-				Position:lowPosition,
-				Up:lookUpUp,
-				Yaw:lookUpYaw,
-			};
-			var inSpaceNavigationState = {
-				Anchor:'Earth',
-				Pitch:lookUpPitch,
-				Position:highPosition,
-				Up:lookUpUp,
-				Yaw:lookUpYaw,
-			};			
-			//You might also want to adjust the Earth Texture layers, Ctrl+F for "EarthTexturelayers"
-
-
+			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings');
+			
 			//These are functional variables that are needed for the interface to work
 			//resetting the openspace interface:
 			var openspace = null;
@@ -246,7 +214,10 @@
 					'Clear Keyframe Sequence': () => {
 					  openspace.keyframeRecording.newSequence();
 					  // console.log('double quotes cause error, Unexpected end of input');
-					  ChangeDescription(programmingButtons.title,'Keyframe sequence cleared.');				
+					  ChangeDescription(programmingButtons.title,'Keyframe sequence cleared.');	
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 1500);		
 					}
 				}
 			};
@@ -368,41 +339,49 @@
 				connectToOpenSpace('localhost');
 			</script>
 
-<button id="SaveAllKeyframes" onclick="saveSequence()">Save Sequence as OSRECTXT</button>
+<button id="SaveAllKeyframes" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status.</span></div>
 
 <script>
 
 
-function saveSequence() {
-  
-  // Format datetime for filename
-  const now = new Date();
-  const pad = n => String(n).padStart(2, "0");
-  const timestamp = [
-    now.getFullYear(),
-    pad(now.getMonth() + 1),
-    pad(now.getDate()),
-    pad(now.getHours()),
-    pad(now.getMinutes()),
-    pad(now.getSeconds())
-  ].join("-");
+async function saveSequence() {
+  try {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const timestamp = [
+      now.getFullYear(),
+      pad(now.getMonth() + 1),
+      pad(now.getDate()),
+      pad(now.getHours()),
+      pad(now.getMinutes()),
+      pad(now.getSeconds())
+    ].join("-");
 
-  const filename = `concat-${timestamp}.osrectxt`;
-  const recfilefullpath = recordingsPath + filename;
-  openspace.keyframeRecording.saveSequence(recfilefullpath)
+    const filename = `concat-${timestamp}.osrectxt`;
+    const recfilefullpath = recordingsPath + filename;
+
+    // If saveSequence is async
+    await openspace.keyframeRecording.saveSequence(recfilefullpath);
+
+    document.getElementById('saveSeqStatus').textContent =
+      'Sequence saved as ' + recfilefullpath;
+  } catch (err) {
+    console.error('Error saving sequence:', err);
+    document.getElementById('saveSeqStatus').textContent =
+      'Error saving sequence: ' + err.message;
+  }
 }
+
 
 </script>
 
 
 
 
-			<p>Contact Email: <a href="mailto:webmaster@saispace.in">webmaster@saispace.in</a></p>
+			<p>Please report issues at <a href="https://github.com/hn-88/openspace-scripts/issues" target=_blank>https://github.com/hn-88/openspace-scripts/issues</a></p>
 		</div>
 	</body>
 </html>
-
-
 
 
 
