@@ -94,7 +94,7 @@
 					let timeSimdiff = currSimTime - prevSimTime;
 					let destinationNavStateObj = await navstates[index - 1];  // Wait for navstate to resolve
                     // Create the script string for previous index
-                    let scriptstring = "openspace.navigation.flyToNavigationState("+destinationNavStateObj+", "+timeSimdiff+")";
+                    let scriptstring = "openspace.navigation.flyToNavigationState("+JSON.stringify(destinationNavStateObj)+", "+timeSimdiff+")";
                     openspace.keyframeRecording.addScriptKeyframe(prevSimTime, scriptstring);
                     // Output or use scriptstring as needed for each index
                      console.log(`Index ${index}: ${scriptstring}`);
@@ -425,3 +425,4 @@ async function saveSequence() {
 		</div>
 	</body>
 </html>
+
