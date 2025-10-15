@@ -3,7 +3,7 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<head>
 			
-		<title>OpenSpace Keyframe concatenation</title>
+		<title>OpenSpace NavigationState fly-to concatenation</title>
 		<link rel="stylesheet" type="text/css" href="main2.css">
 		<script type="text/javascript" src="openspace-api.js"></script>
 		<script type="text/javascript">
@@ -87,16 +87,30 @@
 				}
 				return "No message";  // Return null if no match is found
 			}
+            function jsObjectToLuaTable(obj) {
+                if (Array.isArray(obj)) {
+                    return '{' + obj.map(jsObjectToLuaTable).join(', ') + '}';
+                } else if (typeof obj === 'object' && obj !== null) {
+                    let pairs = Object.entries(obj).map(([key, value]) => {
+                        return `${key} = ${jsObjectToLuaTable(value)}`;
+                    });
+                    return '{' + pairs.join(', ') + '}';
+                } else if (typeof obj === 'string') {
+                    return `"${obj}"`;
+                } else {
+                    return String(obj);
+                }
+            }
             async function addFlyToScript(index) {
                 try {
-                    let prevSimTime = parseFloat(document.getElementById('simtime' + (index - 1)).value);
+                    let prevSimTime = parseFloat(document.getElementById('simtime' + (index - 1)).value) + 0.1; // avoiding two script keyframes with the same timestamp
 					let currSimTime = parseFloat(document.getElementById('simtime' + index).value);
 					let timeSimdiff = currSimTime - prevSimTime;
 					let destinationNavStateObj = await navstates[index - 1];  // Wait for navstate to resolve
                     // Create the script string for previous index
-                    let scriptstring = "openspace.navigation.flyToNavigationState("+JSON.stringify(destinationNavStateObj)+", "+timeSimdiff+")";
+                    let scriptstring = "openspace.navigation.flyToNavigationState("+jsObjectToLuaTable(destinationNavStateObj["1"])+", "+timeSimdiff+")";
                     openspace.keyframeRecording.addScriptKeyframe(prevSimTime, scriptstring);
-                    // Output or use scriptstring as needed for each index
+                    // Test the scriptstring - debugging
                      console.log(`Index ${index}: ${scriptstring}`);
                 } catch (error) {
                     console.error("Error processing flyto script:", error);
@@ -112,140 +126,128 @@
 			  buttons: {
 			    'Save keyframe 1': () => {
                   navstates[0] = openspace.navigation.getNavigationState();
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime1').value);
+                  // let destinationNavStateObj = await navstates[0];  // Wait for navstate to resolve
+                  // let scriptstring = "openspace.navigation.setNavigationState("+jsObjectToLuaTable(destinationNavStateObj["1"])+")";
+                  // let SimTime = parseFloat(document.getElementById('simtime1').value);
+                  // openspace.keyframeRecording.addScriptKeyframe(SimTime, scriptstring);
+                    // adding settings to make the interpolation look good for our use case
+                    // https://github.com/hn-88/openspace-scripts/issues/2
+                  // openspace.keyframeRecording.addScriptKeyframe(SimTime, 'openspace.setPropertyValueSingle("NavigationHandler.PathNavigator.IncludeRoll", true)');
+                  // openspace.keyframeRecording.addScriptKeyframe(SimTime, 'openspace.setPropertyValueSingle("NavigationHandler.PathNavigator.DefaultPathType", 3.000000)');
                   document.getElementById('keyframeStatus1').textContent =
                     'NavState saved at ' + document.getElementById('simtime1').value;
                 },
                 'Save keyframe 2': () => {
                   navstates[1] = openspace.navigation.getNavigationState();
                   addFlyToScript(2);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime2').value);
                   document.getElementById('keyframeStatus2').textContent =
                     'NavState saved at ' + document.getElementById('simtime2').value;
                 },
                 'Save keyframe 3': () => {
                   navstates[2] = openspace.navigation.getNavigationState();
                   addFlyToScript(3);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime3').value);
                   document.getElementById('keyframeStatus3').textContent =
                     'NavState saved at ' + document.getElementById('simtime3').value;
                 },
                 'Save keyframe 4': () => {
                   navstates[3] = openspace.navigation.getNavigationState();
                   addFlyToScript(4);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime4').value);
                   document.getElementById('keyframeStatus4').textContent =
                     'NavState saved at ' + document.getElementById('simtime4').value;
                 },
                 'Save keyframe 5': () => {
                   navstates[4] = openspace.navigation.getNavigationState();
                   addFlyToScript(5);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime5').value);
                   document.getElementById('keyframeStatus5').textContent =
                     'NavState saved at ' + document.getElementById('simtime5').value;
                 },
                 'Save keyframe 6': () => {
                   navstates[5] = openspace.navigation.getNavigationState();
                   addFlyToScript(6);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime6').value);
                   document.getElementById('keyframeStatus6').textContent =
                     'NavState saved at ' + document.getElementById('simtime6').value;
                 },
                 'Save keyframe 7': () => {
                   navstates[6] = openspace.navigation.getNavigationState();
                   addFlyToScript(7);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime7').value);
                   document.getElementById('keyframeStatus7').textContent =
                     'NavState saved at ' + document.getElementById('simtime7').value;
                 },
                 'Save keyframe 8': () => {
                   navstates[7] = openspace.navigation.getNavigationState();
                   addFlyToScript(8);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime8').value);
                   document.getElementById('keyframeStatus8').textContent =
                     'NavState saved at ' + document.getElementById('simtime8').value;
                 },
                 'Save keyframe 9': () => {
                   navstates[8] = openspace.navigation.getNavigationState();
                   addFlyToScript(9);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime9').value);
                   document.getElementById('keyframeStatus9').textContent =
                     'NavState saved at ' + document.getElementById('simtime9').value;
                 },
                 'Save keyframe 10': () => {
                   navstates[9] = openspace.navigation.getNavigationState();
                   addFlyToScript(10);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime10').value);
                   document.getElementById('keyframeStatus10').textContent =
                     'NavState saved at ' + document.getElementById('simtime10').value;
                 },
                 'Save keyframe 11': () => {
                   navstates[10] = openspace.navigation.getNavigationState();
                   addFlyToScript(11);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime11').value);
                   document.getElementById('keyframeStatus11').textContent =
                     'NavState saved at ' + document.getElementById('simtime11').value;
                 },
                 'Save keyframe 12': () => {
                   navstates[11] = openspace.navigation.getNavigationState();
                   addFlyToScript(12);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime12').value);
                   document.getElementById('keyframeStatus12').textContent =
                     'NavState saved at ' + document.getElementById('simtime12').value;
                 },
                 'Save keyframe 13': () => {
                   navstates[12] = openspace.navigation.getNavigationState();
                   addFlyToScript(13);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime13').value);
                   document.getElementById('keyframeStatus13').textContent =
                     'NavState saved at ' + document.getElementById('simtime13').value;
                 },
                 'Save keyframe 14': () => {
                   navstates[13] = openspace.navigation.getNavigationState();
                   addFlyToScript(14);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime14').value);
                   document.getElementById('keyframeStatus14').textContent =
                     'NavState saved at ' + document.getElementById('simtime14').value;
                 },
                 'Save keyframe 15': () => {
                   navstates[14] = openspace.navigation.getNavigationState();
                   addFlyToScript(15);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime15').value);
                   document.getElementById('keyframeStatus15').textContent =
                     'NavState saved at ' + document.getElementById('simtime15').value;
                 },
                 'Save keyframe 16': () => {
                   navstates[15] = openspace.navigation.getNavigationState();
                   addFlyToScript(16);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime16').value);
                   document.getElementById('keyframeStatus16').textContent =
                     'NavState saved at ' + document.getElementById('simtime16').value;
                 },
                 'Save keyframe 17': () => {
                   navstates[16] = openspace.navigation.getNavigationState();
                   addFlyToScript(17);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime17').value);
                   document.getElementById('keyframeStatus17').textContent =
                     'NavState saved at ' + document.getElementById('simtime17').value;
                 },
                 'Save keyframe 18': () => {
                   navstates[17] = openspace.navigation.getNavigationState();
                   addFlyToScript(18);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime18').value);
                   document.getElementById('keyframeStatus18').textContent =
                     'NavState saved at ' + document.getElementById('simtime18').value;
                 },
                 'Save keyframe 19': () => {
                   navstates[18] = openspace.navigation.getNavigationState();
                   addFlyToScript(19);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime19').value);
                   document.getElementById('keyframeStatus19').textContent =
                     'NavState saved at ' + document.getElementById('simtime19').value;
                 },
                 'Save keyframe 20': () => {
                   navstates[19] = openspace.navigation.getNavigationState();
                   addFlyToScript(20);
-                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime20').value);
                   document.getElementById('keyframeStatus20').textContent =
                     'NavState saved at ' + document.getElementById('simtime20').value;
                 },
@@ -370,7 +372,7 @@
 	<body>
 		
 		<div class="navbar">
-			<h1>Keyframe concatenation in OpenSpace
+			<h1>NavState fly-to concatenation in OpenSpace
 			
 		</div>
 		<div id="container" class="disconnected">
