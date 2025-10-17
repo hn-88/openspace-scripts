@@ -18,7 +18,7 @@
 			//These are variables to customize for your own dome as needed/desired:
 			//wherever your content will be on your local machine
 			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
-			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings/";
+			var recordingsPath = "D:/Downloads/OpenSpace-0.21.2_minimal/user/recordings";
 			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings');
 			
 			//These are functional variables that are needed for the interface to work
@@ -398,14 +398,12 @@
 			<script type="text/javascript">
 				connectToOpenSpace('localhost');
 			</script>
-      <div>
-        <p>
-          <input type="checkbox" checked="checked" id="doInterp" name="doInterp" >
-          <label for="doInterp" style="margin-left:10px; color:#eee;"> Ease In/Out between keyframes</label>
-        </p>
-      </div>
-<button id="SaveAllKeyframes" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status.</span></div>
-<button id="SaveAllKeyframesInterp" onclick="saveAllKeyframes()">Save Ease-in/out interpolated OSRECTXT</button><span id="saveSeqStatus2" style="margin-left:10px; color:#eee;">(You need to save it and move it to user/recordings yourself.)</span></div>
+      
+<div><button id="SaveSeq" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status.</span></div>
+
+<div><button id="SaveAllKeyframes" onclick="saveAllKeyframes()">Download and Save OSRECTXT</button><span id="saveKeyFramesStatus" style="margin-left:10px; color:#eee;">(You need to save it and move it to user/recordings yourself.)</span></div>
+
+<div><button id="SaveAllKeyframesInterp" onclick="saveAllKeyframesWithInterpolation()">Save Ease-in/out interpolated OSRECTXT</button><span id="saveSeqStatus2" style="margin-left:10px; color:#eee;">(You need to save it and move it to user/recordings yourself.)</span></div>
 
 <div id="progressContainer" style="display:none; margin-top:10px;">
   <label style="color:#eee;">Interpolating keyframes...</label>
@@ -532,7 +530,7 @@ async function saveAllKeyframesWithInterpolation() {
   }
   
   // Sort by simulation time to ensure correct order
-  cameraKeyframes.sort((a, b) => a.simtime - b.simtime);
+  //cameraKeyframes.sort((a, b) => a.simtime - b.simtime);
   
   console.log(`Found ${cameraKeyframes.length} camera keyframes`);
   
@@ -548,13 +546,15 @@ async function saveAllKeyframesWithInterpolation() {
     const pos = cam.Position || [0, 0, 0];
     const rot = cam.Rotation || [0, 0, 0, 1];
     const anchor = cam.FocusNode || "Earth";
+	const scale = cam.Scale || 1.0;
     
     const line = [
-      "camera",
-      currentKF.simtime,
+      "camera",      
       currentKF.timestamp,
+	  currentKF.simtime,
       pos[0], pos[1], pos[2],
-      rot[0], rot[1], rot[2], rot[3],
+      rot[1], rot[2], rot[3], rot[0],
+	  scale,
       "F",
       anchor
     ].join(" ");
@@ -572,15 +572,15 @@ async function saveAllKeyframesWithInterpolation() {
       const pos2 = cam2.Position || [0, 0, 0];
       const rot1 = cam1.Rotation || [0, 0, 0, 1];
       const rot2 = cam2.Rotation || [0, 0, 0, 1];
+	  const scale1 = cam1.Scale || 1.0;
+	  const scale2 = cam2.Scale || 1.0;
       
       // Interpolate 100 frames between current and next
       for (let step = 1; step <= stepsPerKeyframe; step++) {
         let t = step / (stepsPerKeyframe + 1);
         
-        // Apply easing if checkbox is checked
-        if (document.getElementById('doInterp').checked) {
-          t = easeInOutCubic(t);
-        }
+        // Apply easing 
+        t = easeInOutCubic(t);
         
         // Interpolate position
         const interpPos = [
@@ -588,20 +588,24 @@ async function saveAllKeyframesWithInterpolation() {
           pos1[1] + (pos2[1] - pos1[1]) * t,
           pos1[2] + (pos2[2] - pos1[2]) * t
         ];
+		
+		// Interpolate scale
+		const interpScale = scale1 + (scale2 - scale1) * t;
         
         // Interpolate rotation (SLERP for quaternions)
         const interpRot = slerpQuaternion(rot1, rot2, t);
         
         // Interpolate time values
-        const interpSimtime = currentKF.simtime + (nextKF.simtime - currentKF.simtime) * t;
+		const interpSimtime = currentKF.simtime + (nextKF.simtime - currentKF.simtime) * t;
         const interpTimestamp = currentKF.timestamp + (nextKF.timestamp - currentKF.timestamp) * t;
         
         const interpLine = [
           "camera",
-          interpSimtime,
-          interpTimestamp,
+		  interpTimestamp,
+          interpSimtime,          
           interpPos[0], interpPos[1], interpPos[2],
-          interpRot[0], interpRot[1], interpRot[2], interpRot[3],
+          interpRot[1], interpRot[2], interpRot[3], interpRot[0],
+		  interpScale,
           "F",
           anchor
         ].join(" ");
@@ -619,18 +623,18 @@ async function saveAllKeyframesWithInterpolation() {
     }
   }
   
-  // Now add all script keyframes and sort everything by simtime
+  // Now add all script keyframes and sort everything by timestamp
   for (let sequenceId in recording) {
     const keyframe = recording[sequenceId];
     
     if (keyframe.Script) {
-      const simtime = keyframe.SimulationTime;
-      const j2000 = keyframe.Timestamp;
+      const j2000 = keyframe.SimulationTime;
+      const timestamp = keyframe.Timestamp;
       const script = keyframe.Script || "";
       
       const line = [
         "script",
-        simtime,
+        timestamp,
         j2000,
         script
       ].join(" ");
@@ -641,16 +645,39 @@ async function saveAllKeyframesWithInterpolation() {
   
   // Sort all lines by simulation time (second field)
   allLines.sort((a, b) => {
-    const simtimeA = parseFloat(a.split(' ')[1]);
-    const simtimeB = parseFloat(b.split(' ')[1]);
-    return simtimeA - simtimeB;
+    const timestampA = parseFloat(a.split(' ')[1]);
+    const timestampB = parseFloat(b.split(' ')[1]);
+    return timestampA - timestampB;
   });
   
   // Hide progress bar
   document.getElementById('progressContainer').style.display = 'none';
   
-  console.log(`Generated ${allLines.length} total lines (${cameraKeyframes.length} original camera keyframes + interpolated + scripts)`);
-  return allLines.join("\n");
+  //console.log(`Generated ${allLines.length} total lines (${cameraKeyframes.length} original camera keyframes + interpolated + scripts)`);
+  //return allLines.join("\n");
+  // Format datetime for filename
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const timestamp = [
+    now.getFullYear(),
+    pad(now.getMonth() + 1),
+    pad(now.getDate()),
+    pad(now.getHours()),
+    pad(now.getMinutes()),
+    pad(now.getSeconds())
+  ].join("-");
+
+  const filename = `concat-${timestamp}.osrectxt`;
+
+  const blob = new Blob([allLines.join("\n")], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 async function saveAllKeyframes() {
@@ -669,7 +696,7 @@ async function saveAllKeyframes() {
     // Process camera keyframes
     if (keyframe.Camera) {
       const cam = keyframe.Camera;
-      const simtime = keyframe.Timestamp;
+      const timestamp = keyframe.Timestamp;
       const j2000 = keyframe.SimulationTime;
       const pos = cam.Position || [0, 0, 0];
       const rot = cam.Rotation || [0, 0, 0, 1]; // Quaternion [x, y, z, w]
@@ -678,7 +705,7 @@ async function saveAllKeyframes() {
       
       const line = [
         "camera",
-        simtime,
+        timestamp,
         j2000,
         pos[0], pos[1], pos[2],
         rot[1], rot[2], rot[3], rot[0],
@@ -777,9 +804,6 @@ async function saveAllKeyframes() {
   }
 }
 
-
-
-
 async function interpolatebetweenkeyframes() {
   const userConfirmed = confirm('Interpolating between keyframes - this can take a while if you have large time intervals.');
   
@@ -817,12 +841,8 @@ async function interpolatebetweenkeyframes() {
 }
 
 async function saveSequence() {
-  testKeyframesStructure();
-  // Run initialization
-  initialize();
-  if (document.getElementById('doInterp').checked) {
-  interpolatebetweenkeyframes();
-  }
+  // testKeyframesStructure();
+  
   try {
     const now = new Date();
     const pad = n => String(n).padStart(2, "0");
