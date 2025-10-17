@@ -1,0 +1,661 @@
+<html>
+	<!-- require this so that apostrophes don't become all weird. -->
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<head>
+			
+		<title>OpenSpace Keyframe concatenation</title>
+		<link rel="stylesheet" type="text/css" href="main2.css">
+		<script type="text/javascript" src="openspace-api.js"></script>
+		<script type="text/javascript">
+            // Hari Nandakumar Sep-Oct 2025            
+            // Modified from the code by    			
+            //by Jeff Nee at NASA's Museum & Informal Education Alliance at JPL
+			//Last updated: May 2024
+			//At the bottom of the page are the button messages that you can customize for prenters, search for "var buttonMessages"
+
+			//Thanks to ChatGPT for some code.
+			
+			//These are variables to customize for your own dome as needed/desired:
+			//wherever your content will be on your local machine
+			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
+			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings/";
+			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings');
+			
+			//These are functional variables that are needed for the interface to work
+			//resetting the openspace interface:
+			var openspace = null;
+
+			// Array to store up to 20 keyframes timestamps
+            var keyframetimes = new Array(20).fill(null);
+
+            
+			
+			function ChangeDescription(sectionName,presenterScript) {
+				//function to display a presenter script when a button is pressed
+				//clear it
+				document.getElementById(sectionName).innerHTML = "";
+				//Then add the text
+				document.getElementById(sectionName).innerHTML += presenterScript;
+				//This is specifcially for the NavState Programming button, turning an object into a string:
+				if (typeof presenterScript !== "string") {
+					presenterScript.then(x => myDisplay(x));
+					function myDisplay(navObj) {
+						document.getElementById(sectionName).innerHTML = JSON.stringify(navObj);
+					}
+				}
+			}
+			
+
+			
+			var setFocus = (focus) => {
+				openspace.setPropertyValue('NavigationHandler.OrbitalNavigator.Anchor', focus);
+				openspace.setPropertyValue('NavigationHandler.OrbitalNavigator.RetargetAnchor', null);
+			}
+			//functions to start and stop rotation of the camera:
+			var rotateCamera = 0;
+			function StartOrbit() {
+				rotateCamera = 1;
+				var globalRotation = setInterval(()=>{
+					openspace.navigation.addGlobalRotation(1,0)
+					if (rotateCamera != 1) {
+						clearInterval(globalRotation);
+						openspace.navigation.addGlobalRotation(0,0)
+					}
+				},500);
+			}
+
+			function StopOrbit() {
+				rotateCamera = 0;
+			}
+			function TemporaryStopOrbit(){
+				if (rotateCamera == 1) {
+					//stop orbit first
+					StopOrbit();
+					document.getElementById('Orbit').className = '';
+					//if it was already going, assume that you want to restart it after the flight
+					setTimeout(() => {
+						StartOrbit();
+						document.getElementById('Orbit').className = 'clicked';
+					},flightDuration*1000+1000)
+				}
+			}
+			function findMessageByButtonName(array, targetButtonName) {
+				for (let i = 0; i < array.length; i++) {
+					if (array[i].buttonName === targetButtonName) {
+						return array[i].message;
+					}
+				}
+				return "No message";  // Return null if no match is found
+			}
+            async function addTimeDeltaScript(index) {
+                try {
+                    // Wait for the promises to resolve
+                    let prevSimTime = parseFloat(document.getElementById('simtime' + (index - 1)).value);
+                    let currSimTime = parseFloat(document.getElementById('simtime' + index).value);
+
+                    // Wait for currentTime() to resolve (assuming it's a Promise)
+                    let prevKeyframeTimeObj = await keyframetimes[index - 1];  // Wait for previous keyframe time to resolve
+                    let currKeyframeTimeObj = await keyframetimes[index - 2];  // Wait for previous-2 keyframe time to resolve
+
+                    let prevKeyframeTime = prevKeyframeTimeObj[1];  // Accessing the value from the object
+                    let currKeyframeTime = currKeyframeTimeObj[1];  // Accessing the value from the object
+
+                    // Calculate the time differences
+                    let timeSimdiff = currSimTime - prevSimTime;
+                    let timeRecdiff = prevKeyframeTime - currKeyframeTime; 
+
+                    let deltatime = Math.trunc(timeRecdiff / timeSimdiff);
+
+                    // Create the script string for this index
+                    let scriptstring = "openspace.time.setDeltaTime(" + deltatime + ")";
+                    openspace.keyframeRecording.addScriptKeyframe(prevSimTime, scriptstring);
+                    // Output or use scriptstring as needed for each index
+                    // console.log(`Index ${index}: ${scriptstring}`);
+                } catch (error) {
+                    console.error("Error processing time delta:", error);
+                }
+            }
+
+//buttons start here
+
+            // Define buttons for saving keyframes
+            var keyframeButtons = {
+			  title: "Keyframe Recorder",
+			  description: "Save navigation states with optional sim-time to next keyframe",
+			  buttons: {
+			    'Save keyframe 1': () => {
+                  keyframetimes[0] = openspace.time.currentTime();
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime1').value);
+                  document.getElementById('keyframeStatus1').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime1').value;
+                },
+                'Save keyframe 2': () => {
+                  keyframetimes[1] = openspace.time.currentTime();
+                  addTimeDeltaScript(2);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime2').value);
+                  document.getElementById('keyframeStatus2').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime2').value;
+                },
+                'Save keyframe 3': () => {
+                  keyframetimes[2] = openspace.time.currentTime();
+                  addTimeDeltaScript(3);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime3').value);
+                  document.getElementById('keyframeStatus3').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime3').value;
+                },
+                'Save keyframe 4': () => {
+                  keyframetimes[3] = openspace.time.currentTime();
+                  addTimeDeltaScript(4);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime4').value);
+                  document.getElementById('keyframeStatus4').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime4').value;
+                },
+                'Save keyframe 5': () => {
+                  keyframetimes[4] = openspace.time.currentTime();
+                  addTimeDeltaScript(5);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime5').value);
+                  document.getElementById('keyframeStatus5').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime5').value;
+                },
+                'Save keyframe 6': () => {
+                  keyframetimes[5] = openspace.time.currentTime();
+                  addTimeDeltaScript(6);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime6').value);
+                  document.getElementById('keyframeStatus6').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime6').value;
+                },
+                'Save keyframe 7': () => {
+                  keyframetimes[6] = openspace.time.currentTime();
+                  addTimeDeltaScript(7);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime7').value);
+                  document.getElementById('keyframeStatus7').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime7').value;
+                },
+                'Save keyframe 8': () => {
+                  keyframetimes[7] = openspace.time.currentTime();
+                  addTimeDeltaScript(8);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime8').value);
+                  document.getElementById('keyframeStatus8').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime8').value;
+                },
+                'Save keyframe 9': () => {
+                  keyframetimes[8] = openspace.time.currentTime();
+                  addTimeDeltaScript(9);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime9').value);
+                  document.getElementById('keyframeStatus9').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime9').value;
+                },
+                'Save keyframe 10': () => {
+                  keyframetimes[9] = openspace.time.currentTime();
+                  addTimeDeltaScript(10);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime10').value);
+                  document.getElementById('keyframeStatus10').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime10').value;
+                },
+                'Save keyframe 11': () => {
+                  keyframetimes[10] = openspace.time.currentTime();
+                  addTimeDeltaScript(11);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime11').value);
+                  document.getElementById('keyframeStatus11').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime11').value;
+                },
+                'Save keyframe 12': () => {
+                  keyframetimes[11] = openspace.time.currentTime();
+                  addTimeDeltaScript(12);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime12').value);
+                  document.getElementById('keyframeStatus12').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime12').value;
+                },
+                'Save keyframe 13': () => {
+                  keyframetimes[12] = openspace.time.currentTime();
+                  addTimeDeltaScript(13);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime13').value);
+                  document.getElementById('keyframeStatus13').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime13').value;
+                },
+                'Save keyframe 14': () => {
+                  keyframetimes[13] = openspace.time.currentTime();
+                  addTimeDeltaScript(14);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime14').value);
+                  document.getElementById('keyframeStatus14').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime14').value;
+                },
+                'Save keyframe 15': () => {
+                  keyframetimes[14] = openspace.time.currentTime();
+                  addTimeDeltaScript(15);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime15').value);
+                  document.getElementById('keyframeStatus15').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime15').value;
+                },
+                'Save keyframe 16': () => {
+                  keyframetimes[15] = openspace.time.currentTime();
+                  addTimeDeltaScript(16);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime16').value);
+                  document.getElementById('keyframeStatus16').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime16').value;
+                },
+                'Save keyframe 17': () => {
+                  keyframetimes[16] = openspace.time.currentTime();
+                  addTimeDeltaScript(17);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime17').value);
+                  document.getElementById('keyframeStatus17').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime17').value;
+                },
+                'Save keyframe 18': () => {
+                  keyframetimes[17] = openspace.time.currentTime();
+                  addTimeDeltaScript(18);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime18').value);
+                  document.getElementById('keyframeStatus18').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime18').value;
+                },
+                'Save keyframe 19': () => {
+                  keyframetimes[18] = openspace.time.currentTime();
+                  addTimeDeltaScript(19);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime19').value);
+                  document.getElementById('keyframeStatus19').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime19').value;
+                },
+                'Save keyframe 20': () => {
+                  keyframetimes[19] = openspace.time.currentTime();
+                  addTimeDeltaScript(20);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime20').value);
+                  document.getElementById('keyframeStatus20').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime20').value;
+                },
+
+
+			  },
+			};
+
+			
+
+			var programmingButtons = {
+				title: "Programming Buttons",
+				description: "Use this to find your NavState for customized flying sequences",
+				buttons: {
+					'Show Nav State': () => {
+						var navState = openspace.navigation.getNavigationState();
+						//console.log(navState);
+						ChangeDescription(programmingButtons.title,navState);
+						
+					},
+					'Clear Keyframe Sequence': () => {
+					  openspace.keyframeRecording.newSequence();
+					  // console.log('double quotes cause error, Unexpected end of input');
+					  ChangeDescription(programmingButtons.title,'Keyframe sequence cleared.');	
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 1500);		
+					}
+				}
+			};
+			
+			var templateButtons = {
+				title: "title_name",
+				description: " ",
+				buttons: {
+					'button1': () => {
+					},
+					'togglebutton1': async () => {
+						if (this.className != 'clicked') { 
+							setTimeout(() => {
+							}, 100)
+							this.className = 'clicked';
+						} else {
+							setTimeout(() => {
+							}, duration*1000+100)
+							this.className = '';
+						}
+					},
+				},
+			};
+			
+//end of buttons			
+			var buttonGroups = [programmingButtons, keyframeButtons];
+
+			
+//OpenSpace Connecting and Mapping buttons		
+			function mapButtons(openspace) {
+				buttonGroups.map((action, id) => {
+					var cardIndex = '';
+					if( id % 2 == 1 ) {
+						cardIndex = "1";
+					}
+					var cardHTML = "<div class='card" + cardIndex +"'><h2>" + action.title + "</h2>";
+					if (action.buttons) {
+						Object.keys(action.buttons).map(button => {
+							const fn = action.buttons[button];
+							if (button.startsWith("Save keyframe")) {
+                                let index = button.split(" ")[2]; // gets "1".."20"
+                                cardHTML += '<div>';
+                                cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
+                                cardHTML += ' <input type="number" id="simtime' + index + '" value=' + (index-1)*10 + ' style="width:120px; margin-left:10px;"><label for="simtime' + index + '">sim-time (sec)</label>';
+								cardHTML += '<span id="keyframeStatus' + index + '" style="margin-left:10px;"></span>';
+                                cardHTML += '</div>';
+                            } else {
+                                cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
+                            }
+							
+						});
+					}
+					if (action.description) {
+						action.description.split('\n').map(item => {
+							cardHTML += "<p id='" + action.title + "'>" + item + "</p>";
+						});
+					}					
+					cardHTML += "</div>";
+					document.getElementById('main').innerHTML += cardHTML;
+					
+				})
+			}
+			
+			var connectToOpenSpace = () => {
+				var host = document.getElementById('ipaddress').value;
+				var api = window.openspaceApi(host, 4682);
+				api.onDisconnect(() => {
+					console.log("disconnected");
+					document.getElementById('container').className = "disconnected";
+					var disconnectedString = "Unable to connect, please run OpenSpace: ";
+					disconnectedString += '<input id="ipaddress" type=text placeholder="Enter IP address" /> ';
+					disconnectedString += '<button onClick="connectToOpenSpace();">Connect</button>';
+					document.getElementById('connection-status').innerHTML = disconnectedString;
+					openspace = null;
+				});
+				api.onConnect(async () => {
+					try {
+						document.getElementById('container').className = "connected";
+						document.getElementById('connection-status').innerHTML = "Connected to OpenSpace";
+						openspace = await api.library();
+						console.log('connected');
+						//wipe the page first before building the buttons
+						document.getElementById('main').innerHTML = '';
+						mapButtons(openspace);
+					} catch (e) {
+						console.log('OpenSpace library could not be loaded: Error: \n', e)
+						return;
+					}
+				})
+				api.connect();
+			};
+		</script>
+	</head>
+
+	<body>
+		
+		<div class="navbar">
+			<h1>Keyframe concatenation in OpenSpace
+			
+		</div>
+		<div id="container" class="disconnected">
+			<div id="connection-status" class="connection-status">
+				Connect to OpenSpace:
+				<input id='ipaddress' type=text placeholder="Enter IP address" />
+				<button onClick="connectToOpenSpace();">Connect</button>
+			</div>\
+
+			<div id="main" class="generatedButtons">
+			</div>
+			<script type="text/javascript">
+				connectToOpenSpace('localhost');
+			</script>
+      <div>
+        <p>
+          <input type="checkbox" checked="checked" id="doInterp" name="doInterp" >
+          <label for="doInterp" style="margin-left:10px; color:#eee;"> Ease In/Out between keyframes</label>
+        </p>
+      </div>
+<button id="SaveAllKeyframes" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status.</span></div>
+<button id="SaveAllKeyframesInterp" onclick="saveAllKeyframes()">Save Ease-in/out interpolated OSRECTXT</button><span id="saveSeqStatus2" style="margin-left:10px; color:#eee;">(You need to save it and move it to user/recordings yourself.)</span></div>
+
+<div id="progressContainer" style="display:none; margin-top:10px;">
+  <label style="color:#eee;">Interpolating keyframes...</label>
+  <progress id="progressBar" value="0" max="100" style="width:300px;"></progress>
+  <span id="progressText" style="margin-left:10px; color:#eee;">0%</span>
+</div>
+<script>
+  // Declare at global scope
+let recording = null;
+
+async function loadKeyframes() {
+  const keyframes = await openspace.keyframeRecording.keyframes();
+  recording = keyframes["1"]; // Assign to global variable
+  console.log('Keyframes loaded:', Object.keys(recording).length);
+}
+
+// Function to count camera keyframes
+async function countCameraKeyframes() {
+  // Load keyframes if not already loaded
+  if (!recording) {
+    await loadKeyframes();
+  }
+  
+  let cameraCount = 0;
+  let scriptCount = 0;
+  
+  console.log('=== COUNTING KEYFRAMES ===');
+  
+  for (let sequenceId in recording) {
+    const keyframe = recording[sequenceId];
+    
+    if (keyframe.Camera) {
+      cameraCount++;
+    }
+    
+    if (keyframe.Script) {
+      scriptCount++;
+    }
+  }
+  
+  console.log(`Total keyframes: ${Object.keys(recording).length}`);
+  console.log(`Camera keyframes: ${cameraCount}`);
+  console.log(`Script keyframes: ${scriptCount}`);
+  
+  return cameraCount;
+}
+
+// Call this first to load the data
+async function initialize() {
+  await loadKeyframes();
+  const totalCameras = await countCameraKeyframes();
+  console.log(`Found ${totalCameras} camera keyframes`);
+}
+
+async function saveAllKeyframes() {
+  // Load keyframes from OpenSpace
+  if (!recording) {
+    await loadKeyframes();
+  }
+  
+  let lines = [];
+  
+  for (let sequenceId in recording) {
+    const keyframe = recording[sequenceId];
+    
+    // Process camera keyframes
+    if (keyframe.Camera) {
+      const cam = keyframe.Camera;
+      const simtime = keyframe.SimulationTime;
+      const j2000 = keyframe.Timestamp;
+      const pos = cam.Position || [0, 0, 0];
+      const rot = cam.Rotation || [0, 0, 0, 1]; // Quaternion [x, y, z, w]
+      const anchor = cam.FocusNode || "Earth";
+      
+      const line = [
+        "camera",
+        simtime,
+        j2000,
+        pos[0], pos[1], pos[2],
+        rot[0], rot[1], rot[2], rot[3],
+        "F",
+        anchor
+      ].join(" ");
+      
+      lines.push(line);
+    }
+    
+    // Process script keyframes
+    if (keyframe.Script) {
+      const simtime = keyframe.SimulationTime;
+      const j2000 = keyframe.Timestamp;
+      const script = keyframe.Script || "";
+      
+      const line = [
+        "script",
+        simtime,
+        j2000,
+        script
+      ].join(" ");
+      
+      lines.push(line);
+    }
+  }
+  
+
+  // Format datetime for filename
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const timestamp = [
+    now.getFullYear(),
+    pad(now.getMonth() + 1),
+    pad(now.getDate()),
+    pad(now.getHours()),
+    pad(now.getMinutes()),
+    pad(now.getSeconds())
+  ].join("-");
+
+  const filename = `concat-${timestamp}.osrectxt`;
+
+  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
+  async function testKeyframesStructure() {
+    // Thanks to Claude.ai for fleshing out the syntax below.
+  try {
+    const keyframes = await openspace.keyframeRecording.keyframes();
+    
+    console.log('=== KEYFRAMES STRUCTURE ===');
+    
+    // Iterate through each recording (only one sequence in this case)
+    for (let recordingId in keyframes) {
+      console.log(`\n=== Recording ${recordingId} ===`);
+      const recording = keyframes[recordingId];
+      
+      // Count keyframes in this recording
+      const keyframeCount = Object.keys(recording).length;
+      console.log(`Total keyframes in recording: ${keyframeCount}`);
+      
+      // Iterate through each keyframe in the recording
+      for (let keyframeId in recording) {
+        const keyframe = recording[keyframeId];
+        console.log(`\n  Keyframe ${keyframeId}:`);
+        console.log(`    SimulationTime: ${keyframe.SimulationTime}`);
+        console.log(`    Timestamp: ${keyframe.Timestamp}`);
+        
+        if (keyframe.Camera) {
+          console.log(`    Type: Camera keyframe`);
+          console.log(`    FocusNode: ${keyframe.Camera.FocusNode}`);
+          console.log(`    Position:`, keyframe.Camera.Position);
+          console.log(`    Rotation:`, keyframe.Camera.Rotation);
+          console.log(`    Scale: ${keyframe.Camera.Scale}`);
+        }
+        
+        if (keyframe.Script) {
+          console.log(`    Type: Script keyframe`);
+          console.log(`    Script: ${keyframe.Script}`);
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error getting keyframes:', error);
+  }
+}
+
+
+
+
+async function interpolatebetweenkeyframes() {
+  const userConfirmed = confirm('Interpolating between keyframes - this can take a while if you have large time intervals.');
+  
+  if (!userConfirmed) {
+    return;
+  }
+
+  // Show progress bar
+  document.getElementById('progressContainer').style.display = 'block';
+  
+  let camerakeyframe = 0;
+  // totalcamkeyframes should be defined somewhere in your code
+  let totalcamkeyframes = 100;
+  
+  while (camerakeyframe < totalcamkeyframes) {
+    // Your interpolation code here
+    for (var i = 0; i < 100000; i++) {
+      //openspace.keyframeRecording.interpolateCameraKeyframes(camerakeyframe, i / 100);
+    }
+    
+    // Update progress
+    const progress = Math.round((camerakeyframe / totalcamkeyframes) * 100);
+    document.getElementById('progressBar').value = progress;
+    document.getElementById('progressText').textContent = progress + '%';
+    
+    // Allow UI to update - THIS IS CRITICAL
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    camerakeyframe++;
+  }
+  
+  // Hide progress bar when done
+  document.getElementById('progressContainer').style.display = 'none';
+  // alert('Interpolation complete!');
+}
+
+async function saveSequence() {
+  testKeyframesStructure();
+  // Run initialization
+  initialize();
+  if (document.getElementById('doInterp').checked) {
+  interpolatebetweenkeyframes();
+  }
+  try {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const timestamp = [
+      now.getFullYear(),
+      pad(now.getMonth() + 1),
+      pad(now.getDate()),
+      pad(now.getHours()),
+      pad(now.getMinutes()),
+      pad(now.getSeconds())
+    ].join("-");
+
+    const filename = `concat-${timestamp}.osrectxt`;
+    const recfilefullpath = recordingsPath + filename;
+
+    // If saveSequence is async
+    await openspace.keyframeRecording.saveSequence(recfilefullpath);
+
+    document.getElementById('saveSeqStatus').textContent =
+      'Sequence saved as ' + recfilefullpath;
+  } catch (err) {
+    console.error('Error saving sequence:', err);
+    document.getElementById('saveSeqStatus').textContent =
+      'Error saving sequence: ' + err.message;
+  }
+}
+
+</script>
+
+			<p>Please report issues at <a href="https://github.com/hn-88/openspace-scripts/issues" target=_blank>https://github.com/hn-88/openspace-scripts/issues</a></p>
+		</div>
+	</body>
+</html>
