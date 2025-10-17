@@ -6,10 +6,8 @@
 		<title>OpenSpace Keyframe concatenation</title>
 		<link rel="stylesheet" type="text/css" href="main2.css">
 		<script type="text/javascript" src="openspace-api.js"></script>
-		<!--Making it easier to write and edit Presenter Messages/Prompts.-->
-		<script type="text/javascript" src="PresenterMessages.js"></script>
 		<script type="text/javascript">
-            // Hari Nandakumar Sep 2025            
+            // Hari Nandakumar Sep-Oct 2025            
             // Modified from the code by    			
             //by Jeff Nee at NASA's Museum & Informal Education Alliance at JPL
 			//Last updated: May 2024
@@ -20,45 +18,15 @@
 			//These are variables to customize for your own dome as needed/desired:
 			//wherever your content will be on your local machine
 			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
-			//default duration for fades and flying:
-			const duration = 1;		
-			const flightDuration = 15;
-			//Note this is the default tilt for the single fisheye config for OpenSpace
-			var defaultTilt =27;
-			//Your coordinates, default is set to JPL in Pasadena, CA
-			var defaultLatitude = 14.1983;
-			var defaultLongitude = 74.1753;
-			var defaultAltitude = 1500;
-			//openspace.globebrowsing.goToGeo('Earth',34.1983,-118.1753,1000)
-			//This was eyeballed by the position of Polaris then using the "Show Nav State" button
-			var lookUpPitch = 2.0425456185375848;
-			var lookUpUp = [-0.25832485826551366,-0.49922160959589273,-0.8270707660863061];
-			var lookUpYaw = 0.0018312094802227185;
-			var lowPosition = [-2491056.5456290348,-4650613.762704544,3585169.2978792596];
-			var highPosition = [-2529914.3964139516,-4723158.425440807,3641094.152005422];
-			var defaultNavigationState = {
-				Anchor:'Earth',
-				Pitch:lookUpPitch,
-				Position:lowPosition,
-				Up:lookUpUp,
-				Yaw:lookUpYaw,
-			};
-			var inSpaceNavigationState = {
-				Anchor:'Earth',
-				Pitch:lookUpPitch,
-				Position:highPosition,
-				Up:lookUpUp,
-				Yaw:lookUpYaw,
-			};			
-			//You might also want to adjust the Earth Texture layers, Ctrl+F for "EarthTexturelayers"
-
-
+			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings/";
+			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings');
+			
 			//These are functional variables that are needed for the interface to work
 			//resetting the openspace interface:
 			var openspace = null;
 
-			// Array to store up to 20 keyframes
-            var keyframes = new Array(20).fill(null);
+			// Array to store up to 20 keyframes timestamps
+            var keyframetimes = new Array(20).fill(null);
 
             
 			
@@ -119,217 +87,185 @@
 				}
 				return "No message";  // Return null if no match is found
 			}
+            async function addTimeDeltaScript(index) {
+                try {
+                    // Wait for the promises to resolve
+                    let prevSimTime = parseFloat(document.getElementById('simtime' + (index - 1)).value);
+                    let currSimTime = parseFloat(document.getElementById('simtime' + index).value);
+
+                    // Wait for currentTime() to resolve (assuming it's a Promise)
+                    let prevKeyframeTimeObj = await keyframetimes[index - 1];  // Wait for previous keyframe time to resolve
+                    let currKeyframeTimeObj = await keyframetimes[index - 2];  // Wait for previous-2 keyframe time to resolve
+
+                    let prevKeyframeTime = prevKeyframeTimeObj[1];  // Accessing the value from the object
+                    let currKeyframeTime = currKeyframeTimeObj[1];  // Accessing the value from the object
+
+                    // Calculate the time differences
+                    let timeSimdiff = currSimTime - prevSimTime;
+                    let timeRecdiff = prevKeyframeTime - currKeyframeTime; 
+
+                    let deltatime = Math.trunc(timeRecdiff / timeSimdiff);
+
+                    // Create the script string for this index
+                    let scriptstring = "openspace.time.setDeltaTime(" + deltatime + ")";
+                    openspace.keyframeRecording.addScriptKeyframe(prevSimTime, scriptstring);
+                    // Output or use scriptstring as needed for each index
+                    // console.log(`Index ${index}: ${scriptstring}`);
+                } catch (error) {
+                    console.error("Error processing time delta:", error);
+                }
+            }
 
 //buttons start here
 
             // Define buttons for saving keyframes
             var keyframeButtons = {
-                title: "Keyframe Recorder",
-                description: "Save navigation states with optional sim-time to next keyframe",
-                buttons: {
-                    'Save keyframe 1': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[0] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime1').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 1 with sim-time ${keyframes[0].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 2': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[1] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime2').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 2 with sim-time ${keyframes[1].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 3': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[2] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime3').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 3 with sim-time ${keyframes[2].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 4': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[3] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime4').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 4 with sim-time ${keyframes[3].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 5': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[4] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime5').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 5 with sim-time ${keyframes[4].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 6': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[5] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime6').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 6 with sim-time ${keyframes[5].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 7': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[6] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime7').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 7 with sim-time ${keyframes[6].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 8': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[7] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime8').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 8 with sim-time ${keyframes[7].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 9': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[8] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime9').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 9 with sim-time ${keyframes[8].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 10': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[9] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime10').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 10 with sim-time ${keyframes[9].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 11': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[10] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime11').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 11 with sim-time ${keyframes[10].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 12': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[11] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime12').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 12 with sim-time ${keyframes[11].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 13': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[12] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime13').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 13 with sim-time ${keyframes[12].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 14': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[13] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime14').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 14 with sim-time ${keyframes[13].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 15': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[14] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime15').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 15 with sim-time ${keyframes[14].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 16': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[15] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime16').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 16 with sim-time ${keyframes[15].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 17': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[16] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime17').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 17 with sim-time ${keyframes[16].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 18': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[17] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime18').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 18 with sim-time ${keyframes[17].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 19': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[18] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime19').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 19 with sim-time ${keyframes[18].simtime} sec`);
-                      });
-                    },
-                    'Save keyframe 20': () => {
-                      var navState = openspace.navigation.getNavigationState();
-                      navState.then(ns => {
-                        keyframes[19] = {
-                          nav: ns,
-                          simtime: document.getElementById('simtime20').value || 0
-                        };
-                        ChangeDescription(keyframeButtons.title, `Saved keyframe 20 with sim-time ${keyframes[19].simtime} sec`);
-                      });
-                    },
-                  },
-            }; // var keyframeButtons
+			  title: "Keyframe Recorder",
+			  description: "Save navigation states with optional sim-time to next keyframe",
+			  buttons: {
+			    'Save keyframe 1': () => {
+                  keyframetimes[0] = openspace.time.currentTime();
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime1').value);
+                  document.getElementById('keyframeStatus1').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime1').value;
+                },
+                'Save keyframe 2': () => {
+                  keyframetimes[1] = openspace.time.currentTime();
+                  addTimeDeltaScript(2);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime2').value);
+                  document.getElementById('keyframeStatus2').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime2').value;
+                },
+                'Save keyframe 3': () => {
+                  keyframetimes[2] = openspace.time.currentTime();
+                  addTimeDeltaScript(3);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime3').value);
+                  document.getElementById('keyframeStatus3').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime3').value;
+                },
+                'Save keyframe 4': () => {
+                  keyframetimes[3] = openspace.time.currentTime();
+                  addTimeDeltaScript(4);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime4').value);
+                  document.getElementById('keyframeStatus4').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime4').value;
+                },
+                'Save keyframe 5': () => {
+                  keyframetimes[4] = openspace.time.currentTime();
+                  addTimeDeltaScript(5);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime5').value);
+                  document.getElementById('keyframeStatus5').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime5').value;
+                },
+                'Save keyframe 6': () => {
+                  keyframetimes[5] = openspace.time.currentTime();
+                  addTimeDeltaScript(6);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime6').value);
+                  document.getElementById('keyframeStatus6').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime6').value;
+                },
+                'Save keyframe 7': () => {
+                  keyframetimes[6] = openspace.time.currentTime();
+                  addTimeDeltaScript(7);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime7').value);
+                  document.getElementById('keyframeStatus7').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime7').value;
+                },
+                'Save keyframe 8': () => {
+                  keyframetimes[7] = openspace.time.currentTime();
+                  addTimeDeltaScript(8);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime8').value);
+                  document.getElementById('keyframeStatus8').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime8').value;
+                },
+                'Save keyframe 9': () => {
+                  keyframetimes[8] = openspace.time.currentTime();
+                  addTimeDeltaScript(9);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime9').value);
+                  document.getElementById('keyframeStatus9').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime9').value;
+                },
+                'Save keyframe 10': () => {
+                  keyframetimes[9] = openspace.time.currentTime();
+                  addTimeDeltaScript(10);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime10').value);
+                  document.getElementById('keyframeStatus10').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime10').value;
+                },
+                'Save keyframe 11': () => {
+                  keyframetimes[10] = openspace.time.currentTime();
+                  addTimeDeltaScript(11);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime11').value);
+                  document.getElementById('keyframeStatus11').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime11').value;
+                },
+                'Save keyframe 12': () => {
+                  keyframetimes[11] = openspace.time.currentTime();
+                  addTimeDeltaScript(12);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime12').value);
+                  document.getElementById('keyframeStatus12').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime12').value;
+                },
+                'Save keyframe 13': () => {
+                  keyframetimes[12] = openspace.time.currentTime();
+                  addTimeDeltaScript(13);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime13').value);
+                  document.getElementById('keyframeStatus13').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime13').value;
+                },
+                'Save keyframe 14': () => {
+                  keyframetimes[13] = openspace.time.currentTime();
+                  addTimeDeltaScript(14);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime14').value);
+                  document.getElementById('keyframeStatus14').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime14').value;
+                },
+                'Save keyframe 15': () => {
+                  keyframetimes[14] = openspace.time.currentTime();
+                  addTimeDeltaScript(15);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime15').value);
+                  document.getElementById('keyframeStatus15').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime15').value;
+                },
+                'Save keyframe 16': () => {
+                  keyframetimes[15] = openspace.time.currentTime();
+                  addTimeDeltaScript(16);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime16').value);
+                  document.getElementById('keyframeStatus16').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime16').value;
+                },
+                'Save keyframe 17': () => {
+                  keyframetimes[16] = openspace.time.currentTime();
+                  addTimeDeltaScript(17);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime17').value);
+                  document.getElementById('keyframeStatus17').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime17').value;
+                },
+                'Save keyframe 18': () => {
+                  keyframetimes[17] = openspace.time.currentTime();
+                  addTimeDeltaScript(18);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime18').value);
+                  document.getElementById('keyframeStatus18').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime18').value;
+                },
+                'Save keyframe 19': () => {
+                  keyframetimes[18] = openspace.time.currentTime();
+                  addTimeDeltaScript(19);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime19').value);
+                  document.getElementById('keyframeStatus19').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime19').value;
+                },
+                'Save keyframe 20': () => {
+                  keyframetimes[19] = openspace.time.currentTime();
+                  addTimeDeltaScript(20);
+                  openspace.keyframeRecording.addCameraKeyframe(document.getElementById('simtime20').value);
+                  document.getElementById('keyframeStatus20').textContent =
+                    'Keyframe saved at ' + document.getElementById('simtime20').value;
+                },
 
+
+			  },
+			};
 
 			
 
@@ -340,16 +276,18 @@
 					'Show Nav State': () => {
 						var navState = openspace.navigation.getNavigationState();
 						//console.log(navState);
-						ChangeDescription(programmingButtons.title,navState)
+						ChangeDescription(programmingButtons.title,navState);
 						
 					},
-					'Add Camera Keyframe': () => {
-						var cameraKeyframe = openspace.keyframeRecording.addCameraKeyframe(20);
-						//console.log(navState);
-						ChangeDescription(programmingButtons.title,cameraKeyframe)
-						openspace.keyframeRecording.saveSequence("seqfilename")
-					},
-				},
+					'Clear Keyframe Sequence': () => {
+					  openspace.keyframeRecording.newSequence();
+					  // console.log('double quotes cause error, Unexpected end of input');
+					  ChangeDescription(programmingButtons.title,'Keyframe sequence cleared.');	
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 1500);		
+					}
+				}
 			};
 			
 			var templateButtons = {
@@ -389,22 +327,15 @@
 							const fn = action.buttons[button];
 							if (button.startsWith("Save keyframe")) {
                                 let index = button.split(" ")[2]; // gets "1".."20"
-                                cardHTML += '<div class="keyframe-row">';
+                                cardHTML += '<div>';
                                 cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
-                                cardHTML += ' <input type="number" id="simtime' + index + '" placeholder="sim-time (sec)" style="width:120px; margin-left:10px;">';
+                                cardHTML += ' <input type="number" id="simtime' + index + '" value=' + (index-1)*10 + ' style="width:120px; margin-left:10px;"><label for="simtime' + index + '">sim-time (sec)</label>';
+								cardHTML += '<span id="keyframeStatus' + index + '" style="margin-left:10px;"></span>';
                                 cardHTML += '</div>';
                             } else {
                                 cardHTML += '<button id="' + button + '" onClick="(' + fn + ')(event)">' + button + '</button>';
                             }
-
-							//add line break after some buttons
-							if (button == 'Pluto Zoom_' || button == 'Night Sky Planets' || button == 'Earth Atmosphere' || button == 'Run Diurnal') {
-								cardHTML += '<br />';
-							}	
-							//add horizontal line after certain buttons, using the '-' as a tag
-							if (button == 'Ursa Minor Image-' || button == 'Virgo Image-') {
-								cardHTML += '<hr>';
-							}	
+							
 						});
 					}
 					if (action.description) {
@@ -468,91 +399,42 @@
 				connectToOpenSpace('localhost');
 			</script>
 
-<button id="SaveAllKeyframes" onclick="saveAllKeyframes()">Save Sequence as OSRECTXT</button>
+<button id="SaveAllKeyframes" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status.</span></div>
 
 <script>
-// Convert OpenSpace timestamp string "YYYY MON DD HH:MM:SS" to J2000 seconds
-function timestampToJ2000(ts) {
-  // J2000 epoch: 2000-01-01 12:00:00 UTC
-  const j2000 = Date.UTC(2000, 0, 1, 12, 0, 0);
 
-  // Parse "2025 SEP 26 08:33:07"
-  const parts = ts.trim().split(/\s+/);
-  const year = parseInt(parts[0]);
-  const monthStr = parts[1].toUpperCase();
-  const monthNames = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-  const month = monthNames.indexOf(monthStr);
-  const day = parseInt(parts[2]);
-  const hms = parts[3].split(":").map(Number);
 
-  const utcMs = Date.UTC(year, month, day, hms[0], hms[1], hms[2]);
-  return (utcMs - j2000) / 1000; // seconds since J2000
+async function saveSequence() {
+  try {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const timestamp = [
+      now.getFullYear(),
+      pad(now.getMonth() + 1),
+      pad(now.getDate()),
+      pad(now.getHours()),
+      pad(now.getMinutes()),
+      pad(now.getSeconds())
+    ].join("-");
+
+    const filename = `concat-${timestamp}.osrectxt`;
+    const recfilefullpath = recordingsPath + filename;
+
+    // If saveSequence is async
+    await openspace.keyframeRecording.saveSequence(recfilefullpath);
+
+    document.getElementById('saveSeqStatus').textContent =
+      'Sequence saved as ' + recfilefullpath;
+  } catch (err) {
+    console.error('Error saving sequence:', err);
+    document.getElementById('saveSeqStatus').textContent =
+      'Error saving sequence: ' + err.message;
+  }
 }
 
-// Placeholder: derive quaternion from nav state
-// OpenSpace nav has Pitch, Yaw, Up; you'd normally need full rotation → quaternion math
-// Here I’ll stub with Up vector mapped into a quaternion-like 4-tuple
-function navToQuaternion(nav) {
-  // This is not mathematically perfect, but a placeholder until we confirm what OpenSpace returns
-  const up = nav.Up || [0,0,1];
-  const pitch = nav.Pitch || 0;
-  const yaw = nav.Yaw || 0;
-  // Simple dummy quaternion (needs replacement with actual conversion)
-  return [up[0], up[1], up[2], 1];
-}
-
-function saveAllKeyframes() {
-  const saved = keyframes.filter(k => k !== null);
-
-  let lines = saved.map((k, idx) => {
-    const nav = k.nav["1"] || k.nav;  // OpenSpace wraps navigation inside "1": {..}
-    const simtime = k.simtime || 0;
-    const j2000 = timestampToJ2000(nav.Timestamp);
-    const pos = nav.Position || [0,0,0];
-    const quat = navToQuaternion(nav);
-    const anchor = nav.Anchor || "Earth";
-
-    return [
-      "camera",
-      simtime,
-      j2000,
-      pos[0], pos[1], pos[2],
-      quat[0], quat[1], quat[2], quat[3],
-      "F",
-      anchor
-    ].join(" ");
-  });
-
-  // Format datetime for filename
-  const now = new Date();
-  const pad = n => String(n).padStart(2, "0");
-  const timestamp = [
-    now.getFullYear(),
-    pad(now.getMonth() + 1),
-    pad(now.getDate()),
-    pad(now.getHours()),
-    pad(now.getMinutes()),
-    pad(now.getSeconds())
-  ].join("-");
-
-  const filename = `concat-${timestamp}.osrectxt`;
-
-  const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
 </script>
 
-
-
-
-			<p>Contact Email: <a href="mailto:webmaster@saispace.in">webmaster@saispace.in</a></p>
+			<p>Please report issues at <a href="https://github.com/hn-88/openspace-scripts/issues" target=_blank>https://github.com/hn-88/openspace-scripts/issues</a></p>
 		</div>
 	</body>
 </html>
