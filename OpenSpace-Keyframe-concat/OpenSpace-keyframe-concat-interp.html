@@ -535,6 +535,9 @@ async function saveAllKeyframesWithInterpolation() {
   console.log(`Found ${cameraKeyframes.length} camera keyframes`);
   
   let allLines = [];
+  let line = "OpenSpace_record/playback02.00A"; 
+  allLines.push(line);
+
   const stepsPerKeyframe = 100;
   
   // Process each pair of consecutive camera keyframes
@@ -630,7 +633,7 @@ async function saveAllKeyframesWithInterpolation() {
     if (keyframe.Script) {
       const j2000 = keyframe.SimulationTime;
       const timestamp = keyframe.Timestamp;
-      const script = keyframe.Script || "";
+      const script = '1 '+keyframe.Script || "";
       
       const line = [
         "script",
