@@ -18,7 +18,7 @@
 			//These are variables to customize for your own dome as needed/desired:
 			//wherever your content will be on your local machine
 			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
-			var recordingsPath = "D:/Downloads/OpenSpace-0.21.2_minimal/user/recordings";
+			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings";
 			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings');
 			
 			//These are functional variables that are needed for the interface to work
@@ -398,9 +398,14 @@
 			<script type="text/javascript">
 				connectToOpenSpace('localhost');
 			</script>
-      
+<div style="margin:10px 10px 10px 10px; color:#eee;">
+      <label >
+        <input type="text" maxlength="16" value="" id="nameprefix">
+        Optional - Enter the prefix (max 16 chars) of the osrectxt to be saved - a timestamp and file extension will be suffixed automatically.
+      </label>
+</div>      
 <div><button id="SaveSeq" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status. This would be saved without ease in/out.</span></div>
-<div style="margin-left:10px; color:#eee; background:#333">
+<div style="margin:10px 10px 10px 10px; color:#eee; background:#333">
 <h4 >Ease in/out options</h4>
 <div>
       <label >
@@ -722,7 +727,9 @@ async function saveAllKeyframesWithInterpolation() {
     pad(now.getSeconds())
   ].join("-");
 
-  const filename = `concat-${timestamp}.osrectxt`;
+  const nameprefix = document.getElementById('nameprefix');
+  const prefix = nameprefix.value.trim() !== '' ? nameprefix.value : 'concat';
+  const filename = `${prefix}-${timestamp}.osrectxt`;
 
   const blob = new Blob([allLines.join("\n")], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
@@ -802,7 +809,9 @@ async function saveAllKeyframes() {
     pad(now.getSeconds())
   ].join("-");
 
-  const filename = `concat-${timestamp}.osrectxt`;
+  const nameprefix = document.getElementById('nameprefix');
+  const prefix = nameprefix.value.trim() !== '' ? nameprefix.value : 'concat';
+  const filename = `${prefix}-${timestamp}.osrectxt`;
 
   const blob = new Blob([lines.join("\n")], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
@@ -909,8 +918,10 @@ async function saveSequence() {
       pad(now.getMinutes()),
       pad(now.getSeconds())
     ].join("-");
-
-    const filename = `concat-${timestamp}.osrectxt`;
+   
+    const nameprefix = document.getElementById('nameprefix');
+    const prefix = nameprefix.value.trim() !== '' ? nameprefix.value : 'concat';
+    const filename = `${prefix}-${timestamp}.osrectxt`;
     const recfilefullpath = recordingsPath + filename;
 
     // If saveSequence is async
