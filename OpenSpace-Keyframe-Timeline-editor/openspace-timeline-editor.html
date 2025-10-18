@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSpace Timeline Editor</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+      color: #e0e0e0;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #2a2a3e;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    
+    h1 {
+      color: #64b5f6;
+      margin-top: 0;
+      font-size: 28px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #1e1e2e;
+      border-radius: 8px;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    label {
+      font-size: 13px;
+      color: #b0b0b0;
+      font-weight: 500;
+    }
+    
+    input[type="text"], input[type="number"], select {
+      padding: 10px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      background: #333;
+      color: #e0e0e0;
+      font-size: 14px;
+    }
+    
+    input[type="text"]:focus, input[type="number"]:focus, select:focus {
+      outline: none;
+      border-color: #64b5f6;
+    }
+    
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(100, 181, 246, 0.4);
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #ef5350 0%, #e53935 100%);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(239, 83, 80, 0.4);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, #66bb6a 0%, #43a047 100%);
+      color: white;
+    }
+    
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 187, 106, 0.4);
+    }
+    
+    .timeline-container {
+      margin: 30px 0;
+      padding: 20px;
+      background: #1e1e2e;
+      border-radius: 8px;
+    }
+    
+    .timeline-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .timeline-info {
+      font-size: 13px;
+      color: #b0b0b0;
+    }
+    
+    .timeline-canvas {
+      width: 100%;
+      height: 400px;
+      background: #252535;
+      border-radius: 6px;
+      cursor: crosshair;
+      border: 2px solid #3a3a4a;
+    }
+    
+    .keyframe-list {
+      margin-top: 30px;
+      max-height: 400px;
+      overflow-y: auto;
+      background: #1e1e2e;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    
+    .keyframe-item {
+      display: grid;
+      grid-template-columns: 80px 120px 120px 1fr 100px;
+      gap: 15px;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: #2a2a3e;
+      border-radius: 6px;
+      align-items: center;
+      transition: all 0.2s;
+    }
+    
+    .keyframe-item:hover {
+      background: #333348;
+      transform: translateX(4px);
+    }
+    
+    .keyframe-item.selected {
+      background: #3a4a5a;
+      border-left: 4px solid #64b5f6;
+    }
+    
+    .keyframe-type {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    
+    .keyframe-type.camera {
+      background: #42a5f5;
+      color: white;
+    }
+    
+    .keyframe-type.script {
+      background: #66bb6a;
+      color: white;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    
+    .progress-container {
+      display: none;
+      margin: 20px 0;
+      padding: 15px;
+      background: #1e1e2e;
+      border-radius: 8px;
+    }
+    
+    progress {
+      width: 100%;
+      height: 24px;
+      border-radius: 12px;
+    }
+    
+    .info-box {
+      background: #1e1e2e;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 13px;
+      color: #b0b0b0;
+      line-height: 1.6;
+    }
+    
+    .info-box strong {
+      color: #64b5f6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎬 OpenSpace Timeline Editor</h1>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label for="nameprefix">Output Filename Prefix</label>
+        <input type="text" id="nameprefix" value="edited" placeholder="edited">
+      </div>
+      
+      <div class="control-group">
+        <label for="interpolationTime">Cut Interpolation Time (seconds)</label>
+        <input type="number" id="interpolationTime" value="1.0" min="0" max="10" step="0.1">
+      </div>
+      
+      <div class="control-group">
+        <label for="easingType">Easing Function</label>
+        <select id="easingType">
+          <option value="linear">Linear</option>
+          <option value="sine" selected>Sine (Smooth)</option>
+          <option value="cubic">Cubic</option>
+          <option value="quadratic">Quadratic (Gentle)</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="timeline-container">
+      <div class="timeline-header">
+        <h3 style="margin: 0; color: #64b5f6;">Timeline</h3>
+        <div class="timeline-info">
+          <span id="timelineInfo">No recording loaded</span>
+        </div>
+      </div>
+      <canvas id="timelineCanvas" class="timeline-canvas"></canvas>
+      <div style="margin-top: 10px; font-size: 12px; color: #888;">
+        Click and drag to select keyframes for deletion
+      </div>
+    </div>
+    
+    <div class="action-buttons">
+      <button class="btn-primary" onclick="loadRecording()">Load Recording</button>
+      <button class="btn-danger" onclick="deleteSelected()">Delete Selected</button>
+      <button class="btn-primary" onclick="clearSelection()">Clear Selection</button>
+      <button class="btn-success" onclick="exportRecording()">Export Recording</button>
+    </div>
+    
+    <div class="progress-container" id="progressContainer">
+      <progress id="progressBar" value="0" max="100"></progress>
+      <div id="progressText" style="text-align: center; margin-top: 8px;">0%</div>
+    </div>
+    
+    <div class="keyframe-list" id="keyframeList">
+      <p style="text-align: center; color: #888;">Load a recording to see keyframes</p>
+    </div>
+    
+    <div class="info-box">
+      <strong>Instructions:</strong><br>
+      1. Click "Load Recording" to fetch keyframes from OpenSpace<br>
+      2. Click and drag on the timeline to select keyframes for deletion<br>
+      3. Click "Delete Selected" to remove selected keyframes<br>
+      4. Adjust interpolation time to control transition smoothness after cuts<br>
+      5. Click "Export Recording" to save the edited recording
+    </div>
+  </div>
+
+  <script>
+    let recording = null;
+    let keyframeArray = [];
+    let selectedRanges = [];
+    let canvas, ctx;
+    let isDragging = false;
+    let dragStart = null;
+    
+    // Initialize canvas
+    window.addEventListener('load', () => {
+      canvas = document.getElementById('timelineCanvas');
+      ctx = canvas.getContext('2d');
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      
+      canvas.addEventListener('mousedown', onMouseDown);
+      canvas.addEventListener('mousemove', onMouseMove);
+      canvas.addEventListener('mouseup', onMouseUp);
+      canvas.addEventListener('mouseleave', onMouseUp);
+    });
+    
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      drawTimeline();
+    }
+    
+    async function loadRecording() {
+      try {
+        // Mock data for demonstration - replace with actual OpenSpace API call
+        // const keyframes = await openspace.keyframeRecording.keyframes();
+        
+        // For now, create sample data
+        recording = createSampleRecording();
+        processRecording();
+        drawTimeline();
+        updateKeyframeList();
+        
+        document.getElementById('timelineInfo').textContent = 
+          `${keyframeArray.length} keyframes loaded`;
+      } catch (error) {
+        console.error('Error loading recording:', error);
+        alert('Error loading recording. See console for details.');
+      }
+    }
+    
+    function createSampleRecording() {
+      // Sample data structure matching OpenSpace format
+      const sample = {
+        "recording_0": {}
+      };
+      
+      for (let i = 0; i < 10; i++) {
+        const simTime = i * 10;
+        const timestamp = i * 2;
+        
+        sample["recording_0"][`keyframe_${i}`] = {
+          SimulationTime: simTime,
+          Timestamp: timestamp,
+          Camera: {
+            Position: [Math.random() * 1000, Math.random() * 1000, Math.random() * 1000],
+            Rotation: [Math.random(), Math.random(), Math.random(), Math.random()],
+            FocusNode: "Earth",
+            Scale: 1.0 + Math.random()
+          }
+        };
+        
+        if (i % 3 === 0) {
+          sample["recording_0"][`script_${i}`] = {
+            SimulationTime: simTime + 5,
+            Timestamp: timestamp + 1,
+            Script: `console.log("Event at ${simTime}")`
+          };
+        }
+      }
+      
+      return sample;
+    }
+    
+    function processRecording() {
+      keyframeArray = [];
+      
+      for (let recordingId in recording) {
+        const rec = recording[recordingId];
+        for (let keyframeId in rec) {
+          const kf = rec[keyframeId];
+          keyframeArray.push({
+            id: keyframeId,
+            simTime: kf.SimulationTime,
+            timestamp: kf.Timestamp,
+            camera: kf.Camera || null,
+            script: kf.Script || null,
+            type: kf.Camera ? 'camera' : 'script'
+          });
+        }
+      }
+      
+      keyframeArray.sort((a, b) => a.timestamp - b.timestamp);
+    }
+    
+    function drawTimeline() {
+      if (!keyframeArray.length) return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      
+      ctx.clearRect(0, 0, w, h);
+      
+      const minTime = keyframeArray[0].timestamp;
+      const maxTime = keyframeArray[keyframeArray.length - 1].timestamp;
+      const timeRange = maxTime - minTime || 1;
+      
+      // Draw time axis
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(50, h - 50);
+      ctx.lineTo(w - 50, h - 50);
+      ctx.stroke();
+      
+      // Draw keyframes
+      keyframeArray.forEach((kf, idx) => {
+        const x = 50 + ((kf.timestamp - minTime) / timeRange) * (w - 100);
+        const y = kf.type === 'camera' ? h / 2 : h / 2 - 60;
+        
+        const isSelected = selectedRanges.some(range => 
+          kf.timestamp >= range.start && kf.timestamp <= range.end
+        );
+        
+        ctx.fillStyle = isSelected ? '#ef5350' : (kf.type === 'camera' ? '#42a5f5' : '#66bb6a');
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Draw line to axis
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(x, y + 8);
+        ctx.lineTo(x, h - 50);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      });
+      
+      // Draw selection ranges
+      ctx.fillStyle = 'rgba(239, 83, 80, 0.2)';
+      selectedRanges.forEach(range => {
+        const x1 = 50 + ((range.start - minTime) / timeRange) * (w - 100);
+        const x2 = 50 + ((range.end - minTime) / timeRange) * (w - 100);
+        ctx.fillRect(x1, 0, x2 - x1, h);
+      });
+      
+      // Draw labels
+      ctx.fillStyle = '#b0b0b0';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('Camera', 10, h / 2 + 4);
+      ctx.fillText('Script', 10, h / 2 - 56);
+    }
+    
+    function onMouseDown(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      isDragging = true;
+      dragStart = getTimeFromX(x);
+    }
+    
+    function onMouseMove(e) {
+      if (!isDragging) return;
+      drawTimeline();
+      
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const currentTime = getTimeFromX(x);
+      
+      // Draw temporary selection
+      const minTime = keyframeArray[0].timestamp;
+      const maxTime = keyframeArray[keyframeArray.length - 1].timestamp;
+      const timeRange = maxTime - minTime || 1;
+      const w = rect.width;
+      const h = rect.height;
+      
+      const x1 = 50 + ((Math.min(dragStart, currentTime) - minTime) / timeRange) * (w - 100);
+      const x2 = 50 + ((Math.max(dragStart, currentTime) - minTime) / timeRange) * (w - 100);
+      
+      ctx.fillStyle = 'rgba(100, 181, 246, 0.3)';
+      ctx.fillRect(x1, 0, x2 - x1, h);
+    }
+    
+    function onMouseUp(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const endTime = getTimeFromX(x);
+      
+      const start = Math.min(dragStart, endTime);
+      const end = Math.max(dragStart, endTime);
+      
+      if (end - start > 0.1) {
+        selectedRanges.push({ start, end });
+        mergeOverlappingRanges();
+      }
+      
+      drawTimeline();
+      updateKeyframeList();
+    }
+    
+    function getTimeFromX(x) {
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const minTime = keyframeArray[0].timestamp;
+      const maxTime = keyframeArray[keyframeArray.length - 1].timestamp;
+      const timeRange = maxTime - minTime || 1;
+      
+      return minTime + ((x - 50) / (w - 100)) * timeRange;
+    }
+    
+    function mergeOverlappingRanges() {
+      selectedRanges.sort((a, b) => a.start - b.start);
+      
+      const merged = [];
+      for (const range of selectedRanges) {
+        if (merged.length === 0) {
+          merged.push(range);
+        } else {
+          const last = merged[merged.length - 1];
+          if (range.start <= last.end) {
+            last.end = Math.max(last.end, range.end);
+          } else {
+            merged.push(range);
+          }
+        }
+      }
+      
+      selectedRanges = merged;
+    }
+    
+    function clearSelection() {
+      selectedRanges = [];
+      drawTimeline();
+      updateKeyframeList();
+    }
+    
+    function deleteSelected() {
+      if (selectedRanges.length === 0) {
+        alert('No keyframes selected for deletion');
+        return;
+      }
+      
+      const interpTime = parseFloat(document.getElementById('interpolationTime').value);
+      
+      // Sort ranges by start time
+      selectedRanges.sort((a, b) => a.start - b.start);
+      
+      let timeOffset = 0;
+      let newKeyframes = [];
+      
+      for (let i = 0; i < selectedRanges.length; i++) {
+        const range = selectedRanges[i];
+        const rangeStart = range.start - timeOffset;
+        const rangeEnd = range.end - timeOffset;
+        
+        // Find keyframes before and after the cut
+        const beforeCut = keyframeArray.filter(kf => 
+          kf.timestamp < rangeStart - timeOffset
+        );
+        const inCut = keyframeArray.filter(kf => 
+          kf.timestamp >= rangeStart && kf.timestamp <= rangeEnd + timeOffset
+        );
+        const afterCut = keyframeArray.filter(kf => 
+          kf.timestamp > rangeEnd + timeOffset
+        );
+        
+        const cutDuration = rangeEnd - rangeStart;
+        
+        // Add keyframes before cut
+        newKeyframes.push(...beforeCut);
+        
+        // Create interpolation keyframes if there are keyframes on both sides
+        if (beforeCut.length > 0 && afterCut.length > 0) {
+          const lastBefore = beforeCut[beforeCut.length - 1];
+          const firstAfter = afterCut[0];
+          
+          if (lastBefore.camera && firstAfter.camera) {
+            const interpKeyframes = createInterpolationKeyframes(
+              lastBefore, 
+              firstAfter, 
+              interpTime,
+              cutDuration
+            );
+            newKeyframes.push(...interpKeyframes);
+          }
+        }
+        
+        // Adjust timestamps for keyframes after cut
+        afterCut.forEach(kf => {
+          kf.timestamp -= cutDuration;
+          kf.simTime -= cutDuration;
+        });
+        
+        newKeyframes.push(...afterCut);
+        keyframeArray = newKeyframes;
+        newKeyframes = [];
+        timeOffset += cutDuration;
+      }
+      
+      selectedRanges = [];
+      drawTimeline();
+      updateKeyframeList();
+      
+      document.getElementById('timelineInfo').textContent = 
+        `${keyframeArray.length} keyframes (after deletion)`;
+    }
+    
+    function createInterpolationKeyframes(kf1, kf2, interpTime, cutDuration) {
+      const steps = Math.max(10, Math.floor(interpTime * 30)); // 30 fps
+      const interpKeyframes = [];
+      const easingType = document.getElementById('easingType').value;
+      
+      for (let i = 1; i <= steps; i++) {
+        let t = i / (steps + 1);
+        
+        // Apply easing
+        if (easingType === 'cubic') {
+          t = easeInOutCubic(t);
+        } else if (easingType === 'sine') {
+          t = easeInOutSine(t);
+        } else if (easingType === 'quadratic') {
+          t = easeInOutQuad(t);
+        }
+        
+        const interpTimestamp = kf1.timestamp + (interpTime * t);
+        const interpSimTime = kf1.simTime + (interpTime * t);
+        
+        const pos1 = kf1.camera.Position;
+        const pos2 = kf2.camera.Position;
+        const rot1 = kf1.camera.Rotation;
+        const rot2 = kf2.camera.Rotation;
+        
+        const interpPos = [
+          pos1[0] + (pos2[0] - pos1[0]) * t,
+          pos1[1] + (pos2[1] - pos1[1]) * t,
+          pos1[2] + (pos2[2] - pos1[2]) * t
+        ];
+        
+        const interpRot = slerpQuaternion(rot1, rot2, t);
+        const interpScale = kf1.camera.Scale + (kf2.camera.Scale - kf1.camera.Scale) * t;
+        
+        interpKeyframes.push({
+          id: `interp_${Date.now()}_${i}`,
+          simTime: interpSimTime,
+          timestamp: interpTimestamp,
+          camera: {
+            Position: interpPos,
+            Rotation: interpRot,
+            FocusNode: kf1.camera.FocusNode,
+            Scale: interpScale
+          },
+          script: null,
+          type: 'camera'
+        });
+      }
+      
+      return interpKeyframes;
+    }
+    
+    function slerpQuaternion(q1, q2, t) {
+      let dot = q1[0] * q2[0] + q1[1] * q2[1] + q1[2] * q2[2] + q1[3] * q2[3];
+      
+      if (dot < 0.0) {
+        q2 = [-q2[0], -q2[1], -q2[2], -q2[3]];
+        dot = -dot;
+      }
+      
+      if (dot > 0.9995) {
+        return [
+          q1[0] + t * (q2[0] - q1[0]),
+          q1[1] + t * (q2[1] - q1[1]),
+          q1[2] + t * (q2[2] - q1[2]),
+          q1[3] + t * (q2[3] - q1[3])
+        ];
+      }
+      
+      const theta = Math.acos(dot);
+      const sinTheta = Math.sin(theta);
+      const w1 = Math.sin((1 - t) * theta) / sinTheta;
+      const w2 = Math.sin(t * theta) / sinTheta;
+      
+      return [
+        w1 * q1[0] + w2 * q2[0],
+        w1 * q1[1] + w2 * q2[1],
+        w1 * q1[2] + w2 * q2[2],
+        w1 * q1[3] + w2 * q2[3]
+      ];
+    }
+    
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+    
+    function easeInOutSine(t) {
+      return -(Math.cos(Math.PI * t) - 1) / 2;
+    }
+    
+    function easeInOutQuad(t) {
+      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+    
+    function updateKeyframeList() {
+      const listDiv = document.getElementById('keyframeList');
+      
+      if (keyframeArray.length === 0) {
+        listDiv.innerHTML = '<p style="text-align: center; color: #888;">No keyframes loaded</p>';
+        return;
+      }
+      
+      listDiv.innerHTML = '';
+      
+      keyframeArray.forEach((kf, idx) => {
+        const isSelected = selectedRanges.some(range => 
+          kf.timestamp >= range.start && kf.timestamp <= range.end
+        );
+        
+        const item = document.createElement('div');
+        item.className = 'keyframe-item' + (isSelected ? ' selected' : '');
+        
+        item.innerHTML = `
+          <span class="keyframe-type ${kf.type}">${kf.type}</span>
+          <span>Time: ${kf.timestamp.toFixed(2)}s</span>
+          <span>SimTime: ${kf.simTime.toFixed(2)}</span>
+          <span style="font-size: 11px; color: #888;">${kf.id}</span>
+          <span style="font-size: 11px;">${isSelected ? '✓ Selected' : ''}</span>
+        `;
+        
+        listDiv.appendChild(item);
+      });
+    }
+    
+    function exportRecording() {
+      if (!keyframeArray.length) {
+        alert('No recording to export');
+        return;
+      }
+      
+      const lines = ['OpenSpace_record/playback02.00A'];
+      
+      keyframeArray.forEach(kf => {
+        if (kf.camera) {
+          const cam = kf.camera;
+          const line = [
+            'camera',
+            kf.timestamp,
+            kf.simTime,
+            cam.Position[0], cam.Position[1], cam.Position[2],
+            cam.Rotation[1], cam.Rotation[2], cam.Rotation[3], cam.Rotation[0],
+            cam.Scale,
+            'F',
+            cam.FocusNode
+          ].join(' ');
+          lines.push(line);
+        }
+        
+        if (kf.script) {
+          const line = [
+            'script',
+            kf.timestamp,
+            kf.simTime,
+            '1 ' + kf.script
+          ].join(' ');
+          lines.push(line);
+        }
+      });
+      
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const timestamp = [
+        now.getFullYear(),
+        pad(now.getMonth() + 1),
+        pad(now.getDate()),
+        pad(now.getHours()),
+        pad(now.getMinutes()),
+        pad(now.getSeconds())
+      ].join('-');
+      
+      const prefix = document.getElementById('nameprefix').value.trim() || 'edited';
+      const filename = `${prefix}-${timestamp}.osrectxt`;
+      
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
