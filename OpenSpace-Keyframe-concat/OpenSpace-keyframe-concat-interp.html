@@ -399,9 +399,36 @@
 				connectToOpenSpace('localhost');
 			</script>
       
-<div><button id="SaveSeq" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status.</span></div>
-
-<div><button id="SaveAllKeyframes" onclick="saveAllKeyframes()">Download and Save OSRECTXT</button><span id="saveKeyFramesStatus" style="margin-left:10px; color:#eee;">(You need to save it and move it to user/recordings yourself.)</span></div>
+<div><button id="SaveSeq" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status. This would be saved without ease in/out.</span></div>
+<div style="margin-left:10px; color:#eee; background:#333">
+<h4 >Ease in/out options</h4>
+<div>
+      <label >
+        <input type="radio" name="easing" value="linear">
+        Linear - Constant speed, no easing
+      </label>
+</div>
+<div>      
+      <label >
+        <input type="radio" name="easing" value="cubic">
+        Cubic - Snappy ease in/out        
+      </label>
+</div>
+ <div>     
+      <label>
+        <input type="radio" name="easing" value="sine" checked>
+        Sine - Natural, gentle S-curve
+      </label>
+</div>
+<div>      
+      <label>
+        <input type="radio" name="easing" value="quadratic">
+        Quadratic - Smoothest, most gradual ease
+      </label>
+</div>
+</div>
+<p></p>
+<div><button id="SaveAllKeyframes" onclick="saveAllKeyframes()">Download and Save OSRECTXT</button><span id="saveKeyFramesStatus" style="margin-left:10px; color:#eee;">(The sequence without ease-in/out interpolated keyframes - you need to save it and move it to user/recordings yourself.)</span></div>
 
 <div><button id="SaveAllKeyframesInterp" onclick="saveAllKeyframesWithInterpolation()">Save Ease-in/out interpolated OSRECTXT</button><span id="saveSeqStatus2" style="margin-left:10px; color:#eee;">(You need to save it and move it to user/recordings yourself.)</span></div>
 
@@ -504,6 +531,21 @@ function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
+// sine is slower at the endpoints than cubic
+function easeInOutSine(t) {
+  return -(Math.cos(Math.PI * t) - 1) / 2;
+}
+
+// Quadratic (even gentler than sine)
+function easeInOutQuad(t) {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
+
+// Quartic (between cubic and sine in intensity)
+function easeInOutQuart(t) {
+  return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+}
+
 async function saveAllKeyframesWithInterpolation() {
   // Load keyframes from OpenSpace
   if (!recording) {
@@ -582,8 +624,18 @@ async function saveAllKeyframesWithInterpolation() {
       for (let step = 1; step <= stepsPerKeyframe; step++) {
         let t = step / (stepsPerKeyframe + 1);
         
-        // Apply easing 
-        t = easeInOutCubic(t);
+        // Get the selected easing type
+        const selectedEasing = document.querySelector('input[name="easing"]:checked').value;
+
+        // Apply easing based on selection
+        if (selectedEasing === 'cubic') {
+          t = easeInOutCubic(t);
+        } else if (selectedEasing === 'sine') {
+          t = easeInOutSine(t);
+        } else if (selectedEasing === 'quadratic') {
+          t = easeInOutQuad(t);
+        }
+        // If 'linear', do nothing (t stays as is)
         
         // Interpolate position
         const interpPos = [
