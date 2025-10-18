@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenSpace Timeline Editor</title>
+    <script type="text/javascript" src="openspace-api.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -322,7 +323,8 @@
         // const keyframes = await openspace.keyframeRecording.keyframes();
         
         // For now, create sample data
-        recording = createSampleRecording();
+        // recording = createSampleRecording();
+        recording = await openspace.keyframeRecording.keyframes();
         processRecording();
         drawTimeline();
         updateKeyframeList();
