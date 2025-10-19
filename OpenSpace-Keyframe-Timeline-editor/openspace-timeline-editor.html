@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OpenSpace Timeline Editor</title>
     <script type="text/javascript" src="openspace-api.js"></script>
+	
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -249,10 +250,19 @@ var connectToOpenSpace = () => {
 				})
 				api.connect();
 			};
+			
+		
+			
+			
 		</script>
 	</head>
 
 	<body>
+	
+	<script>
+	var recordingsPath = "D:/Downloads/OpenSpace-0.21.2_minimal/user/recordings/";
+		alert('recordingsPath is set to "' + recordingsPath + '".\nThis setting at the top of the html file needs to be set to your OpenSpace user/recordings folder for this program to work properly.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings');
+	</script>
 		
 		<div class="navbar">
 			<h1>Keyframe concatenation in OpenSpace
@@ -306,6 +316,25 @@ var connectToOpenSpace = () => {
     </div>
     
     <div class="action-buttons">
+	  <div>
+        <label for="filenameInput">Filename of sequence to load:</label>
+        <div class="container">
+            <input type="text" id="filenameInput" placeholder="Enter filename or browse...">
+            <button onclick="document.getElementById('fileInput').click()">Browse</button>
+            <input type="file" id="fileInput" onchange="updateFilename()">
+        </div>
+	<script>
+        function updateFilename() {
+            const fileInput = document.getElementById('fileInput');
+            const filenameInput = document.getElementById('filenameInput');
+            
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                filenameInput.value = file.name;
+            }
+        }
+    </script>
+    </div>
       <button class="btn-primary" onclick="loadRecording()">Load Recording</button>
       <button class="btn-danger" onclick="deleteSelected()">Delete Selected</button>
       <button class="btn-primary" onclick="clearSelection()">Clear Selection</button>
@@ -362,11 +391,10 @@ var connectToOpenSpace = () => {
     
     async function loadRecording() {
       try {
-        // Mock data for demonstration - replace with actual OpenSpace API call
-        // const keyframes = await openspace.keyframeRecording.keyframes();
         
-        // For now, create sample data
-        // recording = createSampleRecording();
+		seqfilename = document.getElementById('filenameInput').value;
+		seqpath = recordingsPath + seqfilename;
+		openspace.keyframeRecording.loadSequence(seqpath);
         recording = await openspace.keyframeRecording.keyframes();
         processRecording();
         drawTimeline();
