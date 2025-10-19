@@ -390,8 +390,7 @@ var connectToOpenSpace = () => {
     }
     
     async function loadRecording() {
-      try {
-        
+      try {        
 		seqfilename = document.getElementById('filenameInput').value;
 		seqpath = recordingsPath + seqfilename;
 		openspace.keyframeRecording.loadSequence(seqpath);
@@ -656,8 +655,7 @@ var connectToOpenSpace = () => {
             const interpKeyframes = createInterpolationKeyframes(
               lastBefore, 
               firstAfter, 
-              interpTime,
-              cutDuration
+              interpTime
             );
             newKeyframes.push(...interpKeyframes);
           }
@@ -665,8 +663,8 @@ var connectToOpenSpace = () => {
         
         // Adjust timestamps for keyframes after cut
         afterCut.forEach(kf => {
-          kf.timestamp -= cutDuration;
-          kf.simTime -= cutDuration;
+          kf.timestamp -= cutDuration-interpTime;
+          kf.simTime -= cutDuration-interpTime;
         });
         
         newKeyframes.push(...afterCut);
@@ -683,7 +681,7 @@ var connectToOpenSpace = () => {
         `${keyframeArray.length} keyframes (after deletion)`;
     }
     
-    function createInterpolationKeyframes(kf1, kf2, interpTime, cutDuration) {
+    function createInterpolationKeyframes(kf1, kf2, interpTime) {
       const steps = Math.max(10, Math.floor(interpTime * 30)); // 30 fps
       const interpKeyframes = [];
       const easingType = document.getElementById('easingType').value;
