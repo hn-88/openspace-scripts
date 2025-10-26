@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSpace setTime with a delay</title>
+    <script type="text/javascript" src="openspace-api.js"></script>
+	
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+      color: #e0e0e0;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #2a2a3e;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    
+    h1 {
+      color: #64b5f6;
+      margin-top: 0;
+      font-size: 28px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #1e1e2e;
+      border-radius: 8px;
+    }
+    
+    
+    label {
+      font-size: 13px;
+      color: #b0b0b0;
+      font-weight: 500;
+    }
+    
+    
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    
+    .action-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      margin-top: 30px;
+    }
+    
+    
+  </style>
+  <script>
+var connectToOpenSpace = () => {
+				var host = document.getElementById('ipaddress').value;
+				var api = window.openspaceApi(host, 4682);
+				api.onDisconnect(() => {
+					console.log("disconnected");
+					document.getElementById('container').className = "disconnected";
+					var disconnectedString = "Unable to connect, please run OpenSpace: ";
+					disconnectedString += '<input id="ipaddress" type=text placeholder="Enter IP address" /> ';
+					disconnectedString += '<button onClick="connectToOpenSpace();">Connect</button>';
+					document.getElementById('connection-status').innerHTML = disconnectedString;
+					openspace = null;
+				});
+				api.onConnect(async () => {
+					try {
+						document.getElementById('container').className = "connected";
+						document.getElementById('connection-status').innerHTML = "Connected to OpenSpace";
+						openspace = await api.library();
+						console.log('connected');
+						
+					} catch (e) {
+						console.log('OpenSpace library could not be loaded: Error: \n', e)
+						return;
+					}
+				})
+				api.connect();
+			};
+			
+		
+			
+			
+		</script>
+	</head>
+
+	<body>
+	
+	<script>
+		alert('You will need to edit the html file for changing the behaviour of this demo.');
+		/**
+ * A helper function to pause execution for a specified number of milliseconds.
+ * @param {number} ms The number of milliseconds to wait.
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function runloop() {
+  for (let year = 2020; year <= 2022; year++) {
+    for (let month = 1; month <= 12; month++) {
+      // Pad the month with a leading zero if it's a single digit (e.g., 1 -> "01")
+      const monthString = String(month).padStart(2, '0');
+
+      // Set the time to the first day of the month using an ISO 8601 string
+      const firstDayIso = `${year}-${monthString}-01T00:00:00`;
+      openspace.time.setTime(firstDayIso);
+
+      // Store the current time (in seconds since J2000 epoch)
+      let begintime = openspace.time.currentTime();
+
+      // Set the simulation speed to 60 minutes per second
+      openspace.time.setDeltaTime(3600); // 60 minutes * 60 seconds/minute
+	  await sleep(24000); // sleep for 24 seconds
+	  const fifteenthDayIso = `${year}-${monthString}-15T00:00:00`;
+	  openspace.time.setTime(fifteenthDayIso);
+	  await sleep(24000); // sleep for 24 seconds
+	  
+    }
+  }
+            
+}
+        
+
+	</script>
+		
+	<div class="navbar">
+			<h1>setTime with a delay in OpenSpace</h1>
+			
+		</div>
+		<div id="container" class="disconnected">
+			<div id="connection-status" class="connection-status">
+				Connect to OpenSpace:
+				<input id='ipaddress' type=text placeholder="Enter IP address" />
+				<button onClick="connectToOpenSpace();">Connect</button>
+			</div>
+			<script type="text/javascript">
+				connectToOpenSpace('localhost');
+			</script>
+    
+    <div class="action-buttons">
+	  <div>
+        <label >Start the run:</label>
+        <div class="container">
+            
+            <button onclick="runloop()">Start</button>
+            
+        </div>
+	
+    </div>
+      
+</body>
+</html>
