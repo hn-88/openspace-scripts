@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSpace Joystick Controller</title>
+  <script type="text/javascript" src="openspace-api.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+      color: #e0e0e0;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #2a2a3e;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    
+    h1 {
+      color: #64b5f6;
+      margin-top: 0;
+      font-size: 28px;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .connection-status {
+      text-align: center;
+      padding: 15px;
+      background: #1e1e2e;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    
+    .connected .connection-status {
+      background: #1a472a;
+      color: #4caf50;
+    }
+    
+    .disconnected .connection-status {
+      background: #4a1a1a;
+      color: #f44336;
+    }
+    
+    input[type="text"] {
+      padding: 8px 12px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #1e1e2e;
+      color: #e0e0e0;
+      margin: 0 10px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: #64b5f6;
+      color: #1e1e2e;
+    }
+    
+    button:hover {
+      background: #42a5f5;
+      transform: translateY(-1px);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .control-section {
+      margin-bottom: 40px;
+    }
+    
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      background: #1e1e2e;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    
+    .control-mode-container {
+      display: grid;
+      grid-template-columns: 1fr 200px;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .slider-section {
+      padding: 20px;
+      background: #1e1e2e;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    
+    .slider-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .slider-label {
+      font-size: 14px;
+      color: #b0b0b0;
+      text-align: center;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #3a3a4e;
+      outline: none;
+      cursor: pointer;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #64b5f6;
+      cursor: pointer;
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #64b5f6;
+      cursor: pointer;
+      border: none;
+    }
+    
+    .slider-value {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #64b5f6;
+      margin-top: 10px;
+    }
+    
+    .radio-option {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .radio-option:hover {
+      background: #2a2a3e;
+    }
+    
+    .radio-option input[type="radio"] {
+      margin-right: 12px;
+      cursor: pointer;
+      width: 18px;
+      height: 18px;
+    }
+    
+    .radio-option label {
+      cursor: pointer;
+      font-size: 14px;
+      color: #e0e0e0;
+      flex: 1;
+    }
+    
+    .joystick-container {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      grid-template-rows: repeat(3, 100px);
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    
+    .joystick-btn {
+      width: 100px;
+      height: 100px;
+      border: none;
+      border-radius: 8px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #3a3a4e;
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .joystick-btn:hover {
+      background: #4a4a5e;
+      transform: scale(1.05);
+    }
+    
+    .joystick-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .joystick-btn.clicked {
+      background: #4caf50;
+    }
+    
+    .joystick-btn.center {
+      background: #ff9800;
+      font-size: 16px;
+    }
+    
+    .joystick-btn.center:hover {
+      background: #fb8c00;
+    }
+    
+    .joystick-btn.center.inactive {
+      background: #3a3a4e;
+      opacity: 0.5;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .empty-cell {
+      width: 100px;
+      height: 100px;
+    }
+    
+    h2 {
+      color: #64b5f6;
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    
+    .status-indicator {
+      text-align: center;
+      padding: 10px;
+      margin-top: 20px;
+      border-radius: 6px;
+      background: #1e1e2e;
+      font-size: 14px;
+    }
+    
+    .status-indicator.moving {
+      background: #4a1a1a;
+      color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🕹️ OpenSpace Joystick Controller</h1>
+    
+    <div id="connection-status" class="connection-status">
+      Connect to OpenSpace:
+      <input id='ipaddress' type="text" placeholder="localhost" value="localhost" />
+      <button onclick="connectToOpenSpace();">Connect</button>
+    </div>
+    
+    <div class="control-section">
+      <h2>Control Mode</h2>
+      <div class="control-mode-container">
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" id="globalRotation" name="controlMode" value="globalRotation" checked>
+            <label for="globalRotation">Global Rotation (around focus node)</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="globalRoll" name="controlMode" value="globalRoll">
+            <label for="globalRoll">Global Roll</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="localRotation" name="controlMode" value="localRotation">
+            <label for="localRotation">Local Rotation (around camera position)</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="localRoll" name="controlMode" value="localRoll">
+            <label for="localRoll">Local Roll</label>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="truckMovement" name="controlMode" value="truckMovement">
+            <label for="truckMovement">Truck Movement</label>
+          </div>
+        </div>
+        
+        <div class="slider-section">
+          <div class="slider-container">
+            <div class="slider-label">Value</div>
+            <input type="range" id="rotationSlider" min="1" max="360" value="10" oninput="updateSliderValue()">
+            <div class="slider-value" id="sliderValue">10</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="control-section">
+      <h2>Joystick Controls</h2>
+      <div class="joystick-container">
+        <div class="empty-cell"></div>
+        <button class="joystick-btn" id="upBtn" onclick="executeMovement('up')">▲</button>
+        <div class="empty-cell"></div>
+        
+        <button class="joystick-btn" id="leftBtn" onclick="executeMovement('left')">◄</button>
+        <button class="joystick-btn center inactive" id="centerBtn" onclick="resetButtons()">RESET</button>
+        <button class="joystick-btn" id="rightBtn" onclick="executeMovement('right')">►</button>
+        
+        <div class="empty-cell"></div>
+        <button class="joystick-btn" id="downBtn" onclick="executeMovement('down')">▼</button>
+        <div class="empty-cell"></div>
+      </div>
+      
+      <div class="status-indicator" id="statusIndicator">
+        Ready - Click a direction button
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let openspace = null;
+    
+    const connectToOpenSpace = () => {
+      const host = document.getElementById('ipaddress').value;
+      const api = window.openspaceApi(host, 4682);
+      
+      api.onDisconnect(() => {
+        console.log("disconnected");
+        document.getElementById('connection-status').className = "connection-status disconnected";
+        document.getElementById('connection-status').innerHTML = 
+          'Unable to connect to OpenSpace: <input id="ipaddress" type="text" placeholder="localhost" value="localhost" /> ' +
+          '<button onclick="connectToOpenSpace();">Connect</button>';
+        openspace = null;
+      });
+      
+      api.onConnect(async () => {
+        try {
+          document.getElementById('connection-status').className = "connection-status connected";
+          document.getElementById('connection-status').innerHTML = "✓ Connected to OpenSpace";
+          openspace = await api.library();
+          console.log('connected to OpenSpace');
+        } catch (e) {
+          console.log('OpenSpace library could not be loaded: Error: \n', e);
+          return;
+        }
+      });
+      
+      api.connect();
+    };
+    
+    const getControlMode = () => {
+      const radios = document.getElementsByName('controlMode');
+      for (const radio of radios) {
+        if (radio.checked) {
+          return radio.value;
+        }
+      }
+      return 'globalRotation';
+    };
+    
+    const getRotationValue = () => {
+      const slider = document.getElementById('rotationSlider');
+      return parseFloat(slider.value);
+    };
+    
+    const updateSliderValue = () => {
+      const value = getRotationValue();
+      document.getElementById('sliderValue').textContent = value;
+    };
+    
+    const executeMovement = (direction) => {
+      if (!openspace) {
+        alert('Please connect to OpenSpace first');
+        return;
+      }
+      
+      const mode = getControlMode();
+      const value = getRotationValue(); 
+      console.log(value);
+      
+      // Visual feedback
+      const btn = document.getElementById(direction + 'Btn');
+      btn.classList.add('clicked');
+      setTimeout(() => btn.classList.remove('clicked'), 200);
+      
+      // Update status
+      document.getElementById('statusIndicator').className = 'status-indicator moving';
+      document.getElementById('statusIndicator').textContent = 
+        `${direction.toUpperCase()}: ${getRotationValue()}° - Mode: ${mode.replace(/([A-Z])/g, ' $1').trim()}`;
+      
+      switch (mode) {
+        case 'globalRotation':
+          if (direction === 'up') {
+            openspace.navigation.addGlobalRotation(-value, 0);
+          } else if (direction === 'down') {
+            openspace.navigation.addGlobalRotation(value, 0);
+          } else if (direction === 'left') {
+            openspace.navigation.addGlobalRotation(0, value);
+          } else if (direction === 'right') {
+            openspace.navigation.addGlobalRotation(0, -value);
+          }
+          break;
+          
+        case 'globalRoll':
+          if (direction === 'left') {
+            openspace.navigation.addGlobalRoll(-value);
+          } else if (direction === 'right') {
+            openspace.navigation.addGlobalRoll(value);
+          }
+          break;
+          
+        case 'localRotation':
+          if (direction === 'up') {
+            openspace.navigation.addLocalRotation(value, 0);
+          } else if (direction === 'down') {
+            openspace.navigation.addLocalRotation(-value, 0);
+          } else if (direction === 'left') {
+            openspace.navigation.addLocalRotation(0, -value);
+          } else if (direction === 'right') {
+            openspace.navigation.addLocalRotation(0, value);
+          }
+          break;
+          
+        case 'localRoll':
+          if (direction === 'left') {
+            openspace.navigation.addLocalRoll(-value);
+          } else if (direction === 'right') {
+            openspace.navigation.addLocalRoll(value);
+          }
+          break;
+          
+        case 'truckMovement':
+          if (direction === 'up') {
+            openspace.navigation.addTruckMovement(value);
+          } else if (direction === 'down') {
+            openspace.navigation.addTruckMovement(-value);
+          } else if (direction === 'left') {
+            openspace.navigation.addTruckMovement(-value);
+          } else if (direction === 'right') {
+            openspace.navigation.addTruckMovement(value);
+          }
+          break;
+      }
+    };
+    
+    const resetButtons = () => {
+      document.getElementById('statusIndicator').className = 'status-indicator';
+      document.getElementById('statusIndicator').textContent = 'Ready - Click a direction button';
+    };
+    
+    // Auto-connect on load
+    connectToOpenSpace();
+  </script>
+</body>
+</html>
