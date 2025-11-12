@@ -411,13 +411,13 @@
       
       switch (mode) {
         case 'globalRotation':
-          if (direction === 'up') {
+          if (direction === 'right') {
             openspace.navigation.addGlobalRotation(-value, 0);
-          } else if (direction === 'down') {
-            openspace.navigation.addGlobalRotation(value, 0);
           } else if (direction === 'left') {
+            openspace.navigation.addGlobalRotation(value, 0);
+          } else if (direction === 'down') {
             openspace.navigation.addGlobalRotation(0, value);
-          } else if (direction === 'right') {
+          } else if (direction === 'up') {
             openspace.navigation.addGlobalRotation(0, -value);
           }
           break;
@@ -431,13 +431,13 @@
           break;
           
         case 'localRotation':
-          if (direction === 'up') {
+          if (direction === 'left') {
             openspace.navigation.addLocalRotation(value, 0);
-          } else if (direction === 'down') {
-            openspace.navigation.addLocalRotation(-value, 0);
-          } else if (direction === 'left') {
-            openspace.navigation.addLocalRotation(0, -value);
           } else if (direction === 'right') {
+            openspace.navigation.addLocalRotation(-value, 0);
+          } else if (direction === 'up') {
+            openspace.navigation.addLocalRotation(0, -value);
+          } else if (direction === 'down') {
             openspace.navigation.addLocalRotation(0, value);
           }
           break;
