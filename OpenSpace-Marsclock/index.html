@@ -198,7 +198,22 @@
       try {
         // Fetch current simulation time from OpenSpace (async)
         // This corresponds to openspace.time.currentTime() in Lua
-        const j2000_seconds = await openspace.time.currentTime();
+        // const j2000_seconds = await openspace.time.currentTime();
+        // Fetch current simulation time from OpenSpace (async)
+        // This returns an object, not a simple number
+        const timeObj = await openspace.time.currentTime();
+        
+        // Debug: Log what we're getting back
+        console.log("Time object received:", timeObj);
+        
+        // Extract the J2000 seconds from the returned object
+        // The object likely has a property like 'j2000' or is itself the value
+        const j2000_seconds = typeof timeObj === 'object' ? (timeObj.j2000 || timeObj) : timeObj;
+        
+        console.log("Extracted J2000 seconds:", j2000_seconds);
+        
+        // Calculate
+        const timeData = calculateMarsTime(j2000_seconds);
         
         // Calculate
         const timeData = calculateMarsTime(j2000_seconds);
