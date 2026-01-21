@@ -206,9 +206,8 @@
         // Debug: Log what we're getting back
         console.log("Time object received:", timeObj);
         
-        // Extract the J2000 seconds from the returned object
-        // The object likely has a property like 'j2000' or is itself the value
-        const j2000_seconds = typeof timeObj === 'object' ? (timeObj.j2000 || timeObj) : timeObj;
+        // Extract the J2000 seconds from the returned object        
+        const j2000_seconds = timeObj[1];
         
         console.log("Extracted J2000 seconds:", j2000_seconds);
         
