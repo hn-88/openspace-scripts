@@ -204,12 +204,12 @@
         const timeObj = await openspace.time.currentTime();
         
         // Debug: Log what we're getting back
-        console.log("Time object received:", timeObj);
+        //console.log("Time object received:", timeObj);
         
         // Extract the J2000 seconds from the returned object        
         const j2000_seconds = timeObj[1];
         
-        console.log("Extracted J2000 seconds:", j2000_seconds);
+        //console.log("Extracted J2000 seconds:", j2000_seconds);
         
         // Calculate
         const timeData = calculateMarsTime(j2000_seconds);
