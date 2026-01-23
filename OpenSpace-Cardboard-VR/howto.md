@@ -1,5 +1,5 @@
 # A mini-howto on streaming OpenSpace to a VR headset - Google cardboard with Android phone
-### Generated with the help of Gemini 3 on [aistudio.google.com](https://aistudio.google.com) (free plan)
+#### Incorporating suggestions of Gemini 3 on [aistudio.google.com](https://aistudio.google.com) (free plan)
 
 ## 1. VR360 stream setup on PC / Mac
 
