@@ -3,7 +3,7 @@
 
 ## 1. VR360 stream setup on PC / Mac
 
-1. Set up OpenSpace to output to an Equirectangular window configuration - in my case, I edited the built-in[equirectangular_gui.json](https://github.com/OpenSpace/OpenSpace/blob/master/config/equirectangular_gui.json) to change the output size from 1280x720 to 1440x720 since many VR players as well as YouTube need a 2:1 aspect ratio to recognize the stream as a VR360 video.
+1. Set up OpenSpace to output to an Equirectangular window configuration - in my case, I edited the built-in [equirectangular_gui.json](https://github.com/OpenSpace/OpenSpace/blob/master/config/equirectangular_gui.json) to change the output size from 1280x720 to 1440x720 since many VR players as well as YouTube need a 2:1 aspect ratio to recognize the stream as a VR360 video.
 
 2. Set up the streaming video server - I used node-media-server since the setup was so easy -
 
