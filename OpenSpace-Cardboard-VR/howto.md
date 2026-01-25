@@ -141,8 +141,7 @@ If you want the highest quality and low latency, you can turn your phone into a 
 3.  SteamVR will launch on your PC.
 4.  **In OBS:** Right-click the Preview window > **Fullscreen Projector (Preview)** > Select the HMD (Head Mounted Display) or the iVRy window.
 5.  **On Phone:** You will see your OBS preview in VR/Cardboard mode immediately.
-
-The virtual monitor method can possibly be used for other VR headsets like the Meta Quest which would attach directly to the PC / Mac.
+6.  Unfortunately, on testing this method using iVRy for google cardboard, **Fullscreen Projector (Preview)** did not show the HMD as an option for iVRy. On the google cardboard screen, OBS (and actually the entire desktop) was being shown as a **flat desktop window**, with iVRy's default background as the VR360 background. There did not seem to be a way to make the OpenSpace window from the desktop into a VR360 SBS view. Perhaps other HMDs may have this option enabled in OBS, so that the virtual monitor method can possibly be used - maybe with VR headsets like the Meta Quest which would attach directly to the PC / Mac.
 
 > [!NOTE]  
 > Virtual Desktop Classic is a paid app available on Steam, which can be used to mirror the desktop onto VR headsets, with customizable angle of display, even up to 360 degrees. But Virtual Desktop Classic does not seem to work with iVRy - it seems to need a VR headset like Oculus Rift, HTC Vive, etc.
