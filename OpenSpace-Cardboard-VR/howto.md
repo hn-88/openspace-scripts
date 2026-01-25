@@ -129,7 +129,7 @@ Once we type in the rtmp stream URL, the options shown and the choices made were
 
 ### Responsivity and lag
 
-With these settings, and choosing the cardboard viewer icon, the stream was being displayed in a SBS (Side-by-Side) form suitable for viewing with [Google Cardboard](https://arvr.google.com/cardboard/). Since the input was the full scene in VR360 Equirectangular projection, head-tracking was being handled by the phone, with no noticeable lag - the phone in this case was a Samsung Galaxy M34 5G. But since the visuals were being streamed via OBS, a lag of around 3 seconds is noted between control inputs on the Mac running OpenSpace and the phone with the display. 
+With these settings, and choosing the cardboard viewer icon, the stream was being displayed in a SBS (Side-by-Side) form suitable for viewing with [Google Cardboard](https://arvr.google.com/cardboard/). Since the input was the full scene in VR360 Equirectangular projection, head-tracking was being handled by the phone, with no noticeable lag - the phone in this case was a [Samsung Galaxy M34 5G](https://www.gsmarena.com/samsung_galaxy_m34_5g-11290.php). But since the visuals were being streamed via OBS, a lag of around 3 seconds is noted between control inputs on the Mac running OpenSpace and the phone with the display. 
 
 ---
 
@@ -143,6 +143,13 @@ If you want the highest quality and low latency, you can turn your phone into a 
 5.  **On Phone:** You will see your OBS preview in VR/Cardboard mode immediately.
 
 The virtual monitor method can possibly be used for other VR headsets like the Meta Quest which would attach directly to the PC / Mac.
+
+> [!NOTE]  
+> Virtual Desktop Classic is a paid app available on Steam, which can be used to mirror the desktop onto VR headsets, with customizable angle of display, even up to 360 degrees. But Virtual Desktop Classic does not seem to work with iVRy - it seems to need a VR headset like Oculus Rift, HTC Vive, etc.
+
+> [!NOTE]  
+> Trinus is a free app available, which can mirror the desktop onto headsets, which does display SBS (Side-by-Side) on iVRy also, but does not seem to support any head-tracking, and instead just shows the same PC display duplicated SBS.  
+
 
 ### **Summary Recommendation**
 *   **Best Experience:** Use **VRTV Player** with an RTMP stream (via MonaServer).
