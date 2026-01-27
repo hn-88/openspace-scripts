@@ -126,10 +126,13 @@
             display: flex;
             gap: 10px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
         
         .add-channel-btn,
-        .save-btn {
+        .save-btn,
+        .upload-btn,
+        .download-btn {
             padding: 10px 20px;
             color: white;
             border: none;
@@ -139,21 +142,17 @@
             transition: background-color 0.3s;
         }
         
-        .add-channel-btn {
-            background-color: #2196F3;
-        }
+        .add-channel-btn { background-color: #2196F3; }
+        .add-channel-btn:hover { background-color: #0b7dda; }
         
-        .add-channel-btn:hover {
-            background-color: #0b7dda;
-        }
-        
-        .save-btn {
-            background-color: #4CAF50;
-        }
-        
-        .save-btn:hover {
-            background-color: #45a049;
-        }
+        .save-btn { background-color: #4CAF50; }
+        .save-btn:hover { background-color: #45a049; }
+
+        .upload-btn { background-color: #607D8B; }
+        .upload-btn:hover { background-color: #455A64; }
+
+        .download-btn { background-color: #FF9800; }
+        .download-btn:hover { background-color: #F57C00; }
         
         .status {
             margin-top: 20px;
@@ -163,6 +162,8 @@
             border-radius: 4px;
             color: #856404;
         }
+
+        #configFileInput { display: none; }
     </style>
 </head>
 <body>
@@ -191,303 +192,4 @@
         </div>
         
         <div class="mappings-section">
-            <h2>Channel Mappings</h2>
-            <div id="mappingsContainer"></div>
-            <div class="button-group">
-                <button id="addChannelBtn" class="add-channel-btn">+ Add Channel</button>
-                <button id="saveBtn" class="save-btn">💾 Save Configuration</button>
-            </div>
-        </div>
-        
-        <div id="status" class="status" style="display: none;"></div>
-    </div>
-
-    <script>
-        let openspace = null;
-    
-        const connectToOpenSpace = () => {
-          const host = document.getElementById('ipaddress').value;
-          const api = window.openspaceApi(host, 4682);
-          
-          api.onDisconnect(() => {
-            console.log("disconnected");
-            document.getElementById('connection-status').className = "connection-status disconnected";
-            document.getElementById('connection-status').innerHTML = 
-              'Unable to connect to OpenSpace: <input id="ipaddress" type="text" placeholder="localhost" value="localhost" /> ' +
-              '<button onclick="connectToOpenSpace();">Connect</button>';
-            openspace = null;
-          });
-          
-          api.onConnect(async () => {
-            try {
-              document.getElementById('connection-status').className = "connection-status connected";
-              document.getElementById('connection-status').innerHTML = "✓ Connected to OpenSpace";
-              openspace = await api.library();
-              console.log('connected to OpenSpace');
-            } catch (e) {
-              console.log('OpenSpace library could not be loaded: Error: \n', e);
-              return;
-            }
-          });
-          
-          api.connect();
-        };
-
-        let midiAccess = null;
-        let isDetecting = false;
-        let mappingCount = 0;
-        let midiMappings = {};
-
-        // Initialize MIDI
-        async function initMIDI() {
-            try {
-                midiAccess = await navigator.requestMIDIAccess();
-                showStatus('MIDI access granted', 'success');
-                setupMIDIInputs();
-                loadConfiguration();
-                if (mappingCount === 0) {
-                    createInitialMappings();
-                }
-            } catch (error) {
-                showStatus('MIDI access denied or not available: ' + error.message, 'error');
-            }
-        }
-
-        function setupMIDIInputs() {
-            for (let input of midiAccess.inputs.values()) {
-                input.onmidimessage = handleMIDIMessage;
-            }
-        }
-
-        function handleMIDIMessage(message) {
-            const [status, data1, data2] = message.data;
-            const command = status >> 4;
-            const channel = (status & 0x0f) + 1;
-            
-            let controlType = '';
-            let controlNumber = data1;
-            let value = data2;
-            
-            // Determine control type
-            if (command === 9 && value > 0) {
-                controlType = 'note';
-            } else if (command === 8 || (command === 9 && value === 0)) {
-                controlType = 'note';
-            } else if (command === 11) {
-                controlType = 'cc';
-            } else if (command === 14) {
-                controlType = 'pitchbend';
-                value = (data2 << 7) | data1;
-            }
-            
-            if (isDetecting) {
-                const displayType = controlType === 'cc' ? 'CC' : 
-                                  controlType === 'note' ? 'Note' : 'Pitch Bend';
-                document.getElementById('channelDisplay').value = 
-                    `Ch ${channel} - ${displayType} ${controlNumber}`;
-                document.getElementById('valueDisplay').value = value;
-            }
-            
-            // Execute mapped function
-            const key = `ch${channel}_${controlType}${controlNumber}`;
-            if (midiMappings[key]) {
-                const mapping = midiMappings[key];
-                const normalizedValue = value / 127.0; // Normalize to 0-1
-                const minVal = parseFloat(mapping.min) || 0;
-                const maxVal = parseFloat(mapping.max) || 1;
-                const scaledValue = minVal + (normalizedValue * (maxVal - minVal));
-                
-                executeFunction(mapping.functionCall, scaledValue);
-            }
-        }
-
-        function executeFunction(functionTemplate, value) {
-            try {
-                // Replace placeholder with actual value
-                const functionCall = functionTemplate.replace(/\{VALUE\}/g, value.toFixed(2));
-                
-                // Check if openspace is available
-                if (typeof openspace !== 'undefined' && openspace.setPropertyValueSingle) {
-                    eval(functionCall);
-                    console.log('Executed:', functionCall);
-                } else {
-                    console.log('OpenSpace not available. Would execute:', functionCall);
-                }
-            } catch (error) {
-                console.error('Error executing function:', error);
-            }
-        }
-
-        function showStatus(message, type) {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.style.display = 'block';
-            statusEl.style.backgroundColor = type === 'error' ? '#f8d7da' : '#d4edda';
-            statusEl.style.borderColor = type === 'error' ? '#f5c6cb' : '#c3e6cb';
-            statusEl.style.color = type === 'error' ? '#721c24' : '#155724';
-            
-            setTimeout(() => {
-                statusEl.style.display = 'none';
-            }, 3000);
-        }
-
-        function createInitialMappings() {
-            for (let i = 0; i < 4; i++) {
-                addMappingRow(i === 0);
-            }
-        }
-
-        function addMappingRow(isFirst = false) {
-            mappingCount++;
-            const container = document.getElementById('mappingsContainer');
-            
-            const row = document.createElement('div');
-            row.className = 'mapping-row';
-            
-            const exampleFunction = 'openspace.setPropertyValueSingle("Scene.Earth.Scale.Scale", {VALUE})';
-            
-            row.innerHTML = `
-                <div class="mapping-field">
-                    <label>MIDI Channel/Control:</label>
-                    <select id="channel_${mappingCount}" onchange="updateMapping(${mappingCount})">
-                        <option value="">Select...</option>
-                        ${generateChannelOptions()}
-                    </select>
-                </div>
-                <div class="mapping-field">
-                    <label>Function Call (use {VALUE} as placeholder):</label>
-                    <input type="text" id="function_${mappingCount}" 
-                           value="${isFirst ? exampleFunction : ''}" 
-                           placeholder="openspace.setPropertyValueSingle('Property.Name', {VALUE})"
-                           onchange="updateMapping(${mappingCount})">
-                </div>
-                <div class="mapping-field">
-                    <label>Min Value:</label>
-                    <input type="number" id="min_${mappingCount}" value="${isFirst ? '1.0' : '0'}" 
-                           step="0.1" onchange="updateMapping(${mappingCount})">
-                </div>
-                <div class="mapping-field">
-                    <label>Max Value:</label>
-                    <input type="number" id="max_${mappingCount}" value="${isFirst ? '100.0' : '1'}" 
-                           step="0.1" onchange="updateMapping(${mappingCount})">
-                </div>
-            `;
-            
-            container.appendChild(row);
-        }
-
-        function updateMapping(id) {
-            const channelSelect = document.getElementById(`channel_${id}`);
-            const functionInput = document.getElementById(`function_${id}`);
-            const minInput = document.getElementById(`min_${id}`);
-            const maxInput = document.getElementById(`max_${id}`);
-            
-            const key = channelSelect.value;
-            
-            if (key && functionInput.value) {
-                midiMappings[key] = {
-                    functionCall: functionInput.value,
-                    min: minInput.value,
-                    max: maxInput.value
-                };
-            } else if (key) {
-                delete midiMappings[key];
-            }
-        }
-
-        function generateChannelOptions() {
-            let options = '';
-            for (let ch = 1; ch <= 16; ch++) {
-                for (let cc = 0; cc <= 127; cc++) {
-                    options += `<option value="ch${ch}_cc${cc}">Ch ${ch} - CC ${cc}</option>`;
-                }
-                for (let note = 0; note <= 127; note++) {
-                    options += `<option value="ch${ch}_note${note}">Ch ${ch} - Note ${note}</option>`;
-                }
-            }
-            return options;
-        }
-
-        function saveConfiguration() {
-            const config = {
-                mappingCount: mappingCount,
-                mappings: []
-            };
-            
-            for (let i = 1; i <= mappingCount; i++) {
-                const channelEl = document.getElementById(`channel_${i}`);
-                const functionEl = document.getElementById(`function_${i}`);
-                const minEl = document.getElementById(`min_${i}`);
-                const maxEl = document.getElementById(`max_${i}`);
-                
-                if (channelEl && functionEl && minEl && maxEl) {
-                    config.mappings.push({
-                        channel: channelEl.value,
-                        functionCall: functionEl.value,
-                        min: minEl.value,
-                        max: maxEl.value
-                    });
-                }
-            }
-            
-            localStorage.setItem('midiMapperConfig', JSON.stringify(config));
-            showStatus('Configuration saved successfully!', 'success');
-        }
-
-        function loadConfiguration() {
-            const saved = localStorage.getItem('midiMapperConfig');
-            if (saved) {
-                try {
-                    const config = JSON.parse(saved);
-                    const container = document.getElementById('mappingsContainer');
-                    container.innerHTML = '';
-                    
-                    config.mappings.forEach((mapping, index) => {
-                        mappingCount = index + 1;
-                        addMappingRow(false);
-                        
-                        document.getElementById(`channel_${mappingCount}`).value = mapping.channel;
-                        document.getElementById(`function_${mappingCount}`).value = mapping.functionCall;
-                        document.getElementById(`min_${mappingCount}`).value = mapping.min;
-                        document.getElementById(`max_${mappingCount}`).value = mapping.max;
-                        
-                        updateMapping(mappingCount);
-                    });
-                    
-                    showStatus('Configuration loaded successfully!', 'success');
-                } catch (error) {
-                    showStatus('Error loading configuration: ' + error.message, 'error');
-                }
-            }
-        }
-
-        // Event listeners
-        document.getElementById('detectBtn').addEventListener('click', function() {
-            isDetecting = !isDetecting;
-            this.classList.toggle('active');
-            
-            if (isDetecting) {
-                this.textContent = 'Detecting... (Click to stop)';
-                showStatus('MIDI detection active - move a control on your MIDI device', 'success');
-            } else {
-                this.textContent = 'MIDI Channel Detect';
-                showStatus('MIDI detection stopped', 'success');
-            }
-        });
-
-        document.getElementById('addChannelBtn').addEventListener('click', function() {
-            addMappingRow();
-            showStatus('New channel mapping added', 'success');
-        });
-
-        document.getElementById('saveBtn').addEventListener('click', function() {
-            saveConfiguration();
-        });
-
-        // Initialize on load
-        initMIDI();
-        // Auto-connect on load
-        connectToOpenSpace();
-    </script>
-</body>
-</html>
+            <h2>Channel M
