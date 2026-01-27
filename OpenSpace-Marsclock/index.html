@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenSpace Mars Clock</title>
+  <script type="text/javascript" src="openspace-api.js"></script>
+  
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: #2a2a3e;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    
+    h1 {
+      color: #ff6f3c; /* Martian Orange */
+      margin-top: 0;
+      font-size: 28px;
+      text-align: center;
+      margin-bottom: 30px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .connection-status {
+      text-align: center;
+      padding: 15px;
+      background: #1e1e2e;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .connected .connection-status {
+      background: #1a472a;
+      color: #4caf50;
+    }
+    
+    .disconnected .connection-status {
+      background: #4a1a1a;
+      color: #f44336;
+    }
+    
+    input[type="text"] {
+      padding: 8px 12px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #1e1e2e;
+      color: #e0e0e0;
+      margin: 0 10px;
+      width: 120px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #ff6f3c;
+      color: #1e1e2e;
+    }
+    
+    button:hover {
+      background: #ff8a65;
+      transform: translateY(-1px);
+    }
+
+    /* Clock Specific Styles */
+    .clock-display {
+      background: #151520;
+      padding: 25px;
+      border-radius: 8px;
+      text-align: center;
+      border: 1px solid #3a3a4e;
+      margin-bottom: 20px;
+    }
+
+    .label {
+      color: #888;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+    }
+
+    .msd-value {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 24px;
+      color: #ff9e80;
+      margin-bottom: 15px;
+    }
+
+    .mtc-value {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 56px;
+      font-weight: bold;
+      color: #ff6f3c;
+      text-shadow: 0 0 10px rgba(255, 111, 60, 0.3);
+    }
+
+    .utc-ref {
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      margin-top: 20px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mission Control: Mars</h1>
+    
+    <div id="connection-status" class="connection-status">
+      Connect to OpenSpace:
+      <input id='ipaddress' type="text" placeholder="localhost" value="localhost" />
+      <button onclick="connectToOpenSpace();">Connect</button>
+    </div>
+    
+    <div class="clock-display">
+      <div class="label">Martian Sol Date (MSD)</div>
+      <div class="msd-value" id="msdDisplay">---</div>
+      
+      <div class="label">Coordinated Mars Time (MTC)</div>
+      <div class="mtc-value" id="mtcDisplay">--:--:--</div>
+    </div>
+
+    <div class="utc-ref" id="utcDisplay">
+      Waiting for simulation data...
+    </div>
+
+  </div>
+
+  <script>
+    let openspace = null;
+    let updateInterval = null;
+    
+    // --- Math Logic ---
+    const calculateMarsTime = (j2000_seconds) => {
+      // 1. Convert to Julian Date
+      // J2000 epoch is JD 2451545.0
+      // 86400 seconds in a day
+      const jd_ut = 2451545.0 + (j2000_seconds / 86400.0);
+      
+      // 2. Calculate Martian Sol Date (MSD)
+      // Formula based on Allison & McEwen (2000)
+      const msd = (jd_ut - 2451545.0) / 1.027491252 + 44796.0 - 0.00096;
+
+      // 3. Calculate Coordinated Mars Time (MTC)
+      // Extract fractional part
+      const msd_whole = Math.floor(msd);
+      const msd_fraction = msd - msd_whole;
+      
+      const mtc_total_hours = msd_fraction * 24.0;
+      const mtc_hours = Math.floor(mtc_total_hours);
+      
+      const mtc_total_minutes = (mtc_total_hours - mtc_hours) * 60.0;
+      const mtc_minutes = Math.floor(mtc_total_minutes);
+      
+      const mtc_seconds = Math.floor((mtc_total_minutes - mtc_minutes) * 60.0);
+
+      return {
+        msd: msd_whole,
+        h: mtc_hours,
+        m: mtc_minutes,
+        s: mtc_seconds
+      };
+    };
+
+    const pad = (num) => {
+      return num.toString().padStart(2, '0');
+    };
+
+    // --- OpenSpace Communication ---
+
+    const updateClock = async () => {
+      if (!openspace) return;
+
+      try {
+        // Fetch current simulation time from OpenSpace (async)
+        // This corresponds to openspace.time.currentTime() in Lua
+        // const j2000_seconds = await openspace.time.currentTime();
+        // Fetch current simulation time from OpenSpace (async)
+        // This returns an object, not a simple number
+        const timeObj = await openspace.time.currentTime();
+        
+        // Debug: Log what we're getting back
+        //console.log("Time object received:", timeObj);
+        
+        // Extract the J2000 seconds from the returned object        
+        const j2000_seconds = timeObj[1];
+        
+        //console.log("Extracted J2000 seconds:", j2000_seconds);
+        
+        // Calculate
+        const timeData = calculateMarsTime(j2000_seconds);
+        
+        // Update DOM
+        document.getElementById('msdDisplay').innerText = `Sol ${timeData.msd}`;
+        document.getElementById('mtcDisplay').innerText = 
+          `${pad(timeData.h)}:${pad(timeData.m)}:${pad(timeData.s)}`;
+          
+        // Optional: Show raw seconds to prove it's live
+        document.getElementById('utcDisplay').innerText = 
+          `Simulation J2000 Seconds: ${j2000_seconds.toFixed(2)}`;
+
+      } catch (e) {
+        console.warn("Error fetching time:", e);
+      }
+    };
+
+    const connectToOpenSpace = () => {
+      const host = document.getElementById('ipaddress').value;
+      const api = window.openspaceApi(host, 4682);
+      
+      api.onDisconnect(() => {
+        console.log("disconnected");
+        document.getElementById('connection-status').className = "connection-status disconnected";
+        document.getElementById('connection-status').innerHTML = 
+          'Unable to connect to OpenSpace: <input id="ipaddress" type="text" placeholder="localhost" value="localhost" /> ' +
+          '<button onclick="connectToOpenSpace();">Retry</button>';
+        
+        openspace = null;
+        if (updateInterval) clearInterval(updateInterval);
+      });
+      
+      api.onConnect(async () => {
+        try {
+          document.getElementById('connection-status').className = "connection-status connected";
+          document.getElementById('connection-status').innerHTML = "✓ Connected to OpenSpace";
+          
+          openspace = await api.library();
+          console.log('connected to OpenSpace');
+          
+          // Start polling for time every 100ms
+          // We use polling because the simulation time changes constantly
+          updateInterval = setInterval(updateClock, 100);
+          
+        } catch (e) {
+          console.log('OpenSpace library could not be loaded: Error: \n', e);
+          return;
+        }
+      });
+      
+      api.connect();
+    };
+    
+    // Auto-connect on load
+    window.onload = connectToOpenSpace;
+  </script>
+</body>
+</html>
