@@ -126,10 +126,13 @@
             display: flex;
             gap: 10px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
         
         .add-channel-btn,
-        .save-btn {
+        .save-btn,
+        .upload-btn,
+        .download-btn {
             padding: 10px 20px;
             color: white;
             border: none;
@@ -139,21 +142,17 @@
             transition: background-color 0.3s;
         }
         
-        .add-channel-btn {
-            background-color: #2196F3;
-        }
+        .add-channel-btn { background-color: #2196F3; }
+        .add-channel-btn:hover { background-color: #0b7dda; }
         
-        .add-channel-btn:hover {
-            background-color: #0b7dda;
-        }
-        
-        .save-btn {
-            background-color: #4CAF50;
-        }
-        
-        .save-btn:hover {
-            background-color: #45a049;
-        }
+        .save-btn { background-color: #4CAF50; }
+        .save-btn:hover { background-color: #45a049; }
+
+        .upload-btn { background-color: #607D8B; }
+        .upload-btn:hover { background-color: #455A64; }
+
+        .download-btn { background-color: #FF9800; }
+        .download-btn:hover { background-color: #F57C00; }
         
         .status {
             margin-top: 20px;
@@ -163,6 +162,8 @@
             border-radius: 4px;
             color: #856404;
         }
+
+        #configFileInput { display: none; }
     </style>
 </head>
 <body>
@@ -195,7 +196,10 @@
             <div id="mappingsContainer"></div>
             <div class="button-group">
                 <button id="addChannelBtn" class="add-channel-btn">+ Add Channel</button>
-                <button id="saveBtn" class="save-btn">💾 Save Configuration</button>
+                <button id="saveBtn" class="save-btn">💾 Save to Browser</button>
+                <button id="downloadBtn" class="download-btn">📥 Export to File</button>
+                <button id="uploadBtn" class="upload-btn">📤 Load from File</button>
+                <input type="file" id="configFileInput" accept=".json">
             </div>
         </div>
         
@@ -238,13 +242,12 @@
         let mappingCount = 0;
         let midiMappings = {};
 
-        // Initialize MIDI
         async function initMIDI() {
             try {
                 midiAccess = await navigator.requestMIDIAccess();
                 showStatus('MIDI access granted', 'success');
                 setupMIDIInputs();
-                loadConfiguration();
+                loadConfiguration(); // Loads from localStorage
                 if (mappingCount === 0) {
                     createInitialMappings();
                 }
@@ -268,7 +271,6 @@
             let controlNumber = data1;
             let value = data2;
             
-            // Determine control type
             if (command === 9 && value > 0) {
                 controlType = 'note';
             } else if (command === 8 || (command === 9 && value === 0)) {
@@ -288,11 +290,10 @@
                 document.getElementById('valueDisplay').value = value;
             }
             
-            // Execute mapped function
             const key = `ch${channel}_${controlType}${controlNumber}`;
             if (midiMappings[key]) {
                 const mapping = midiMappings[key];
-                const normalizedValue = value / 127.0; // Normalize to 0-1
+                const normalizedValue = value / 127.0;
                 const minVal = parseFloat(mapping.min) || 0;
                 const maxVal = parseFloat(mapping.max) || 1;
                 const scaledValue = minVal + (normalizedValue * (maxVal - minVal));
@@ -303,11 +304,8 @@
 
         function executeFunction(functionTemplate, value) {
             try {
-                // Replace placeholder with actual value
                 const functionCall = functionTemplate.replace(/\{VALUE\}/g, value.toFixed(2));
-                
-                // Check if openspace is available
-                if (typeof openspace !== 'undefined' && openspace.setPropertyValueSingle) {
+                if (typeof openspace !== 'undefined' && openspace && openspace.setPropertyValueSingle) {
                     eval(functionCall);
                     console.log('Executed:', functionCall);
                 } else {
@@ -340,10 +338,8 @@
         function addMappingRow(isFirst = false) {
             mappingCount++;
             const container = document.getElementById('mappingsContainer');
-            
             const row = document.createElement('div');
             row.className = 'mapping-row';
-            
             const exampleFunction = 'openspace.setPropertyValueSingle("Scene.Earth.Scale.Scale", {VALUE})';
             
             row.innerHTML = `
@@ -372,7 +368,6 @@
                            step="0.1" onchange="updateMapping(${mappingCount})">
                 </div>
             `;
-            
             container.appendChild(row);
         }
 
@@ -381,7 +376,6 @@
             const functionInput = document.getElementById(`function_${id}`);
             const minInput = document.getElementById(`min_${id}`);
             const maxInput = document.getElementById(`max_${id}`);
-            
             const key = channelSelect.value;
             
             if (key && functionInput.value) {
@@ -408,11 +402,9 @@
             return options;
         }
 
-        function saveConfiguration() {
-            const config = {
-                mappingCount: mappingCount,
-                mappings: []
-            };
+        function getConfigurationData() {
+            const config = { mappings: [] };
+            const rows = document.querySelectorAll('.mapping-row');
             
             for (let i = 1; i <= mappingCount; i++) {
                 const channelEl = document.getElementById(`channel_${i}`);
@@ -420,7 +412,7 @@
                 const minEl = document.getElementById(`min_${i}`);
                 const maxEl = document.getElementById(`max_${i}`);
                 
-                if (channelEl && functionEl && minEl && maxEl) {
+                if (channelEl && functionEl.value) {
                     config.mappings.push({
                         channel: channelEl.value,
                         functionCall: functionEl.value,
@@ -429,64 +421,89 @@
                     });
                 }
             }
-            
+            return config;
+        }
+
+        function saveConfiguration() {
+            const config = getConfigurationData();
             localStorage.setItem('midiMapperConfig', JSON.stringify(config));
-            showStatus('Configuration saved successfully!', 'success');
+            showStatus('Configuration saved to browser!', 'success');
+        }
+
+        function downloadConfiguration() {
+            const config = getConfigurationData();
+            const blob = new Blob([JSON.stringify(config, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'midi-mapping-config.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            showStatus('Configuration file exported!', 'success');
+        }
+
+        function applyConfiguration(config) {
+            const container = document.getElementById('mappingsContainer');
+            container.innerHTML = '';
+            midiMappings = {};
+            
+            config.mappings.forEach((mapping, index) => {
+                mappingCount = index + 1;
+                addMappingRow(false);
+                
+                document.getElementById(`channel_${mappingCount}`).value = mapping.channel;
+                document.getElementById(`function_${mappingCount}`).value = mapping.functionCall;
+                document.getElementById(`min_${mappingCount}`).value = mapping.min;
+                document.getElementById(`max_${mappingCount}`).value = mapping.max;
+                
+                updateMapping(mappingCount);
+            });
         }
 
         function loadConfiguration() {
             const saved = localStorage.getItem('midiMapperConfig');
             if (saved) {
                 try {
-                    const config = JSON.parse(saved);
-                    const container = document.getElementById('mappingsContainer');
-                    container.innerHTML = '';
-                    
-                    config.mappings.forEach((mapping, index) => {
-                        mappingCount = index + 1;
-                        addMappingRow(false);
-                        
-                        document.getElementById(`channel_${mappingCount}`).value = mapping.channel;
-                        document.getElementById(`function_${mappingCount}`).value = mapping.functionCall;
-                        document.getElementById(`min_${mappingCount}`).value = mapping.min;
-                        document.getElementById(`max_${mappingCount}`).value = mapping.max;
-                        
-                        updateMapping(mappingCount);
-                    });
-                    
-                    showStatus('Configuration loaded successfully!', 'success');
-                } catch (error) {
-                    showStatus('Error loading configuration: ' + error.message, 'error');
-                }
+                    applyConfiguration(JSON.parse(saved));
+                } catch (e) { console.error("Local load failed", e); }
             }
         }
 
-        // Event listeners
+        // --- Event Listeners ---
         document.getElementById('detectBtn').addEventListener('click', function() {
             isDetecting = !isDetecting;
             this.classList.toggle('active');
-            
-            if (isDetecting) {
-                this.textContent = 'Detecting... (Click to stop)';
-                showStatus('MIDI detection active - move a control on your MIDI device', 'success');
-            } else {
-                this.textContent = 'MIDI Channel Detect';
-                showStatus('MIDI detection stopped', 'success');
-            }
+            this.textContent = isDetecting ? 'Detecting... (Click to stop)' : 'MIDI Channel Detect';
+            showStatus(isDetecting ? 'MIDI detection active' : 'MIDI detection stopped', 'success');
         });
 
-        document.getElementById('addChannelBtn').addEventListener('click', function() {
-            addMappingRow();
-            showStatus('New channel mapping added', 'success');
+        document.getElementById('addChannelBtn').addEventListener('click', () => addMappingRow());
+        document.getElementById('saveBtn').addEventListener('click', saveConfiguration);
+        document.getElementById('downloadBtn').addEventListener('click', downloadConfiguration);
+        
+        // Handle the hidden file input
+        document.getElementById('uploadBtn').addEventListener('click', () => {
+            document.getElementById('configFileInput').click();
         });
 
-        document.getElementById('saveBtn').addEventListener('click', function() {
-            saveConfiguration();
+        document.getElementById('configFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    applyConfiguration(config);
+                    showStatus('File loaded successfully!', 'success');
+                } catch (err) {
+                    showStatus('Error parsing JSON file', 'error');
+                }
+            };
+            reader.readAsText(file);
         });
 
-        // Initialize on load
         initMIDI();
-        // Auto-connect on load
         connectToOpenSpace();
     </script>
 </body>
