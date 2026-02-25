@@ -1,0 +1,170 @@
+local moleculeDb = "https://home.thissma.fr/moldata/"
+
+
+
+local moleculeO2 = asset.resource({
+  Name = "Molecule O2",
+  Type = "HttpSynchronization",
+  Identifier = "molecule_dynamics_o2",
+  Version = 1
+})
+
+local moleculeH2O = asset.resource({
+  Name = "Molecule H2O",
+  Type = "HttpSynchronization",
+  Identifier = "molecule_dynamics_h2o",
+  Version = 1
+})
+
+local moleculeCO2 = asset.resource({
+  Name = "Molecule CO2",
+  Type = "HttpSynchronization",
+  Identifier = "molecule_dynamics_co2",
+  Version = 1
+})
+
+local moleculeC60 = asset.resource({
+  Name = "Molecule C60",
+  Type = "HttpSynchronization",
+  Identifier = "molecule_dynamics_c60",
+  Version = 1
+})
+
+
+
+local MoleculeMisc = {
+  Identifier = "MoleculeMisc",
+  Tag = { "molecule_visualization" },
+  GUI = {
+    Name = "Molecule Museum",
+    Path = "/Microcosmos/Molecules/Misc",
+    Hidden = true
+  }
+}
+
+local MoleculeO2 = {
+  Identifier = "MoleculeMiscO2",
+  Parent = MoleculeMisc.Identifier,
+  Transform = {
+    Translation = {
+      Type = "StaticTranslation",
+      Position = { 0.0, 0.0, 0.0 }
+    }
+  },
+  Renderable = {
+    Type = "RenderableMolecule",
+    MoleculeFile = moleculeO2 .. "o2.arc",
+    TrajectoryFile = moleculeO2 .. "o2.arc",
+    AnimationSpeed = 5.0
+  },
+  Tag = { "molecule_visualization" },
+  GUI = {
+    Name = "Dioxygen (O2)",
+    Path = "/Microcosmos/Molecules/Misc"
+  }
+}
+
+local MoleculeH2O = {
+  Identifier = "MoleculeMiscH2O",
+  Parent = MoleculeMisc.Identifier,
+  Transform = {
+    Translation = {
+      Type = "StaticTranslation",
+      Position = { 20.0, 0.0, 0.0 }
+    }
+  },
+  Renderable = {
+    Type = "RenderableMolecule",
+    MoleculeFile = moleculeH2O .. "h2o.arc"
+  },
+  Tag = { "molecule_visualization" },
+  GUI = {
+    Name = "Water (H2O)",
+    Path = "/Microcosmos/Molecules/Misc"
+  }
+}
+
+local MoleculeCO2 = {
+  Identifier = "MoleculeMiscCO2",
+  Parent = MoleculeMisc.Identifier,
+  Transform = {
+    Translation = {
+      Type = "StaticTranslation",
+      Position = { 40.0, 0.0, 0.0 }
+    }
+  },
+  Renderable = {
+    Type = "RenderableMolecule",
+    MoleculeFile = moleculeCO2 .. "co2.arc",
+    Representations = {
+      {
+        Type = "Licorice"
+      }
+    }
+  },
+  Tag = { "molecule_visualization" },
+  GUI = {
+    Name = "Carbon Dioxyde (CO2)",
+    Path = "/Microcosmos/Molecules/Misc"
+  }
+}
+
+local MoleculeC60 = {
+  Identifier = "MoleculeMiscC60",
+  Parent = MoleculeMisc.Identifier,
+  Transform = {
+    Translation = {
+      Type = "StaticTranslation",
+      Position = { 60.0, 0.0, 0.0 }
+    }
+  },
+  Renderable = {
+    Type = "RenderableMolecule",
+    MoleculeFile = moleculeC60 .. "c60.arc",
+    Representations = {
+      {
+        Type = "Licorice"
+      }
+    }
+  },
+  Tag = { "molecule_visualization" },
+  GUI = {
+    Name = "C60",
+    Path = "/Microcosmos/Molecules/Misc"
+  }
+}
+
+
+
+asset.onInitialize(function()
+  openspace.addSceneGraphNode(MoleculeMisc)
+  openspace.addSceneGraphNode(MoleculeO2)
+  openspace.addSceneGraphNode(MoleculeH2O)
+  openspace.addSceneGraphNode(MoleculeCO2)
+  openspace.addSceneGraphNode(MoleculeC60)
+end)
+
+asset.onDeinitialize(function()
+  openspace.removeSceneGraphNode(MoleculeC60)
+  openspace.removeSceneGraphNode(MoleculeCO2)
+  openspace.removeSceneGraphNode(MoleculeH2O)
+  openspace.removeSceneGraphNode(MoleculeO2)
+  openspace.removeSceneGraphNode(MoleculeMisc)
+end)
+
+asset.export(MoleculeMisc)
+asset.export(MoleculeO2)
+asset.export(MoleculeH2O)
+asset.export(MoleculeCO2)
+asset.export(MoleculeC60)
+
+
+
+asset.meta = {
+  Name = "Various Molecules",
+  Description = [[Visualizes a selection of different molecules to represent the
+    functionality of the MolVis rendering framework.]],
+  Author = "OpenSpace Team",
+  URL = "http://openspaceproject.com",
+  License = "MIT license"
+}
