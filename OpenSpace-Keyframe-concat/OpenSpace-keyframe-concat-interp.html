@@ -627,6 +627,7 @@ async function saveAllKeyframesWithInterpolation() {
 	  const scale2 = cam2.Scale || 1.0;
       
       // Interpolate 100 frames between current and next
+	  let tinterp = t;
       for (let step = 1; step <= stepsPerKeyframe; step++) {
         let t = step / (stepsPerKeyframe + 1);
         
@@ -635,13 +636,16 @@ async function saveAllKeyframesWithInterpolation() {
 
         // Apply easing based on selection
         if (selectedEasing === 'cubic') {
-          t = easeInOutCubic(t);
+          tinterp = easeInOutCubic(t);
         } else if (selectedEasing === 'sine') {
-          t = easeInOutSine(t);
+          tinterp = easeInOutSine(t);
         } else if (selectedEasing === 'quadratic') {
-          t = easeInOutQuad(t);
+          tinterp = easeInOutQuad(t);
         }
-        // If 'linear', do nothing (t stays as is)
+		  else if (selectedEasing === 'linear') {
+          tinterp = t;
+        }
+          
         
         // Interpolate position
         const interpPos = [
@@ -656,9 +660,9 @@ async function saveAllKeyframesWithInterpolation() {
         // Interpolate rotation (SLERP for quaternions)
         const interpRot = slerpQuaternion(rot1, rot2, t);
         
-        // Interpolate time values
-		const interpSimtime = currentKF.simtime + (nextKF.simtime - currentKF.simtime) * t;
-        const interpTimestamp = currentKF.timestamp + (nextKF.timestamp - currentKF.timestamp) * t;
+        // Interpolate time values with the easing
+		const interpSimtime = currentKF.simtime + (nextKF.simtime - currentKF.simtime) * tinterp;
+        const interpTimestamp = currentKF.timestamp + (nextKF.timestamp - currentKF.timestamp) * tinterp;
         
         const interpLine = [
           "camera",
@@ -943,4 +947,5 @@ async function saveSequence() {
 		</div>
 	</body>
 </html>
+
 
