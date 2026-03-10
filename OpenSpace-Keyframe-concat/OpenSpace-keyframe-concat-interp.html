@@ -649,20 +649,20 @@ async function saveAllKeyframesWithInterpolation() {
         
         // Interpolate position
         const interpPos = [
-          pos1[0] + (pos2[0] - pos1[0]) * t,
-          pos1[1] + (pos2[1] - pos1[1]) * t,
-          pos1[2] + (pos2[2] - pos1[2]) * t
+          pos1[0] + (pos2[0] - pos1[0]) * tinterp,
+          pos1[1] + (pos2[1] - pos1[1]) * tinterp,
+          pos1[2] + (pos2[2] - pos1[2]) * tinterp
         ];
 		
 		// Interpolate scale
-		const interpScale = scale1 + (scale2 - scale1) * t;
+		const interpScale = scale1 + (scale2 - scale1) * tinterp;
         
         // Interpolate rotation (SLERP for quaternions)
-        const interpRot = slerpQuaternion(rot1, rot2, t);
+        const interpRot = slerpQuaternion(rot1, rot2, tinterp);
         
-        // Interpolate time values with the easing
-		const interpSimtime = currentKF.simtime + (nextKF.simtime - currentKF.simtime) * tinterp;
-        const interpTimestamp = currentKF.timestamp + (nextKF.timestamp - currentKF.timestamp) * tinterp;
+        // Interpolate time values without easing, linearly
+		const interpSimtime = currentKF.simtime + (nextKF.simtime - currentKF.simtime) * t;
+        const interpTimestamp = currentKF.timestamp + (nextKF.timestamp - currentKF.timestamp) * t;
         
         const interpLine = [
           "camera",
@@ -947,6 +947,7 @@ async function saveSequence() {
 		</div>
 	</body>
 </html>
+
 
 
 
