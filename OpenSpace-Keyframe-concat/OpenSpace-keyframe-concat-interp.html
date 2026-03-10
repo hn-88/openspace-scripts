@@ -627,7 +627,7 @@ async function saveAllKeyframesWithInterpolation() {
 	  const scale2 = cam2.Scale || 1.0;
       
       // Interpolate 100 frames between current and next
-	  let tinterp = t;
+	  let tinterp = 0.0;
       for (let step = 1; step <= stepsPerKeyframe; step++) {
         let t = step / (stepsPerKeyframe + 1);
         
@@ -947,5 +947,6 @@ async function saveSequence() {
 		</div>
 	</body>
 </html>
+
 
 
