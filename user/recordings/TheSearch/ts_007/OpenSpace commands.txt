@@ -1,0 +1,41 @@
+OpenSpace commands
+
+openspace.setPropertyValue(uri, value, duration, easing, postscript) 
+already has the ability to ramp up or ramp down.
+
+script 52.015179524198174 826145772.2327627 1 openspace.setPropertyValue("Scene.Venus.Scale.Scale", 5000.000000, 1.0)
+
+openspace.setPropertyValue("Scene.Venus.Scale.Scale", 5000.000000, 1.0)
+openspace.setPropertyValueSingle("Scene.JupiterTrail.Renderable.Period", 21968.438446, 1.0)
+openspace.setPropertyValue("Scene.JupiterTrail.Renderable.Appearance.Color", {0.133333,0.545098,0.901961}, 1.0)
+
+script 200.01283360272646 826145772.2327627 1 openspace.setPropertyValue("Scene.JupiterTrail.Renderable.Appearance.Color", {0.133333,0.545098,0.901961}, 1.0)
+
+openspace.setPropertyValueSingle("OpenSpaceEngine.PropertyVisibility", 5.000000)
+
+openspace.setPropertyValueSingle("Modules.CefWebGui.Visible", false)
+openspace.setPropertyValueSingle("Modules.CefWebGui.Enabled", false)
+
+openspace.setPropertyValueSingle("Scene.Jupiter.Scale.Scale", 1000.000000)
+openspace.setPropertyValueSingle("Scene.JupiterTrail.Renderable.Period", 21968.438446)
+openspace.setPropertyValueSingle("Scene.JupiterTrail.Renderable.Appearance.Color", {0.133333,0.545098,0.901961})
+# this is the ice blue colour
+
+original jupiter trail colour is {0.8, 0.7, 0.7} and period Period = 4330.595, 
+    Resolution = 1000
+Basically we set Trail.Renderable.Period to 5x the original period.
+original trail colours from trail.asset files
+LineWidth = 10
+Mercury { 0.6, 0.5, 0.5 }, Period = 87.968 5x = 440
+Venus { 1.0, 0.5, 0.2 } Period = 224.695 5x = 1124
+Earth { 0.5, 0.8, 1.0 } Period = 365.242 5x = 1826
+Mars { 0.814, 0.305, 0.220 } Period = 686.973 5x = 3435
+Jupiter {0.8, 0.7, 0.7} Period = 4330.595 5x = 21968.438446
+Saturn { 0.85, 0.75, 0.51 } Period = 10746.94 5x = 53735
+Uranus { 0.60, 0.95, 1.00 }, Period = 30685.4 5x = 153427
+Neptune { 0.2, 0.5, 1.0 },   Period = 60189.018 5x = 300945
+
+openspace.setPropertyValueSingle("Scene.JupiterTrail.Renderable.Appearance.LineWidth", 20.000000)
+
+
+
