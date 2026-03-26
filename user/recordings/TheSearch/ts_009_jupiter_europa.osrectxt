@@ -39,7 +39,6 @@ script 0 0 1 openspace.setPropertyValueSingle("Scene.TitaniaTrail.Renderable.Fad
 script 0 0 1 openspace.setPropertyValueSingle("Scene.RheaTrail.Renderable.Fade", 1)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.CallistoTrail.Renderable.Enabled", true)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.EarthTrail.Renderable.Fade", 1)
-script 0 0 1 openspace.setPropertyValueSingle("Scene.PlutoBarycentricTrail.Renderable.Fade", 1)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.MirandaTrail.Renderable.Fade", 1)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.DioneTrail.Renderable.Fade", 1)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.UmbrielTrail.Renderable.Fade", 1)
@@ -72,7 +71,7 @@ script 0 0 1 openspace.setPropertyValueSingle("Scene.OberonTrail.Renderable.Enab
 script 0 0 1 openspace.setPropertyValueSingle("Scene.NeptuneTrail.Renderable.Enabled", true)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.TritonTrail.Renderable.Enabled", true)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.NereidTrail.Renderable.Enabled", true)
-script 0 0 1 openspace.setPropertyValueSingle("Scene.PlutoBarycentricTrail.Renderable.Enabled", true)
+script 0 0 1 openspace.setPropertyValueSingle("Scene.PlutoBarycentricTrail.Renderable.Enabled", false)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.CharonBarycentricTrail.Renderable.Enabled", true)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.KerberosTrail.Renderable.Enabled", true)
 script 0 0 1 openspace.setPropertyValueSingle("Scene.NixTrail.Renderable.Enabled", true)
@@ -1068,6 +1067,7 @@ camera 32.93246330693364 826145772.3070256 18568341910.9718 43897182347.50827 58
 camera 32.96578676626086 826145772.3070256 18385927834.684082 43465863577.866455 5803334867.798218 -0.5149186 -0.4179722 -0.6620352 0.3490952 4.528068e-07 - Jupiter
 camera 32.99910929426551 826145772.3070256 18204937483.544434 43037911211.69342 5746166862.608887 -0.5149186 -0.4179722 -0.6620352 0.3490952 4.5731582e-07 - Jupiter
 camera 33.0324935503304 826145772.3070256 18025050735.164185 42612568318.39697 5689347443.782776 -0.5149186 -0.4179722 -0.6620352 0.3490952 4.6188717e-07 - Jupiter
+script 33.0324935503304 826145772.3070256 1  openspace.setPropertyValue("Scene.*Trail.Renderable.Fade", 0, 1.0); openspace.setPropertyValue("Scene.*trail.Renderable.Fade", 0, 1.0)
 camera 33.06576184555888 826145772.3070256 17847242828.85315 42192140854.99405 5633184652.5252075 -0.5149186 -0.4179722 -0.6620352 0.3490952 4.6649643e-07 - Jupiter
 camera 33.09910933300853 826145772.3070256 17670475357.610718 41774173504.224915 5577350495.346863 -0.5149186 -0.4179722 -0.6620352 0.3490952 4.7117084e-07 - Jupiter
 camera 33.132520850747824 826145772.3070256 17494849707.5968 41358905994.046295 5521876996.300354 -0.5149186 -0.4179722 -0.6620352 0.3490952 4.7590873e-07 - Jupiter
@@ -1464,7 +1464,6 @@ camera 46.13228356465697 826145772.3070256 600309747.918335 1411702700.490631 18
 camera 46.16562459990382 826145772.3070256 600273917.8980713 1411617980.2730103 185519614.06939697 -0.5149186 -0.4179722 -0.6620352 0.3490952 1.4559103e-05 - Jupiter
 camera 46.19899149239063 826145772.3070256 600240455.1170654 1411538857.4013977 185509044.44274902 -0.5149186 -0.4179722 -0.6620352 0.3490952 1.4559956e-05 - Jupiter
 camera 46.232233844697475 826145772.3070256 600209335.5169678 1411465274.9899902 185499214.9383545 -0.5149186 -0.4179722 -0.6620352 0.3490952 1.456075e-05 - Jupiter
-script 46.232233844697475 826145772.3070256 1     openspace.toggleFade("Scene.*Trail.Renderable");    openspace.toggleFade("Scene.*trail.Renderable");  
 camera 46.265630166977644 826145772.3070256 600180161.5566406 1411396293.0510254 185489999.98791504 -0.5149186 -0.4179722 -0.6620352 0.3490952 1.4561495e-05 - Jupiter
 camera 46.311905302107334 826145772.3070256 600143480.2471924 1411309559.9568176 185478413.74987793 -0.5149186 -0.4179722 -0.6620352 0.3490952 1.456243e-05 - Jupiter
 camera 46.33306279964745 826145772.3070256 600127419.852417 1411271585.092865 185473340.87872314 -0.5149186 -0.4179722 -0.6620352 0.3490952 1.4562841e-05 - Jupiter
