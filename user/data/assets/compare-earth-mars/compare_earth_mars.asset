@@ -1,0 +1,104 @@
+local sun_asset = asset.require('scene/solarsystem/sun/sun')
+
+local Sphere1 = {
+  Identifier = "CompareEarth",
+  -- Parent = sun_asset.Sun.Identifier,
+  Transform = {
+    -- A GlobeTranslation puts the sphere on the location on the Sun you want it to be located.
+    Translation = {
+      Type = "StaticTranslation",
+      Position = {750000000.0, 0.0, 0.0 } -- Put this to the same as the size to offset it from the surface
+    },
+    Rotation = {
+      Type = "ConstantRotation",
+      RotationAxis = { 0.0, 0.0, 1.0 },
+      RotationRate = 0.05
+    }
+  },
+  Renderable = {
+    Type = "RenderableSphereImageLocal",
+    Size =  6378137, -- The size you want the sphere to be (radius) in metres
+    Segments = 25,
+    Texture = asset.resource("earth_bluemarble_clouds.jpg"),
+    Orientation = "Both"
+  },
+  GUI = {
+    Name = "CompareEarth",
+    Path = "/SunCompare"
+  }
+}
+
+local Sphere2 = {
+  Identifier = "CompareMars",
+  -- Parent = sun_asset.Sun.Identifier,
+  Transform = {
+    -- A GlobeTranslation puts the sphere on the location on the Sun you want it to be located.
+    Translation = {
+      Type = "StaticTranslation",
+      Position = {760000000.0, 0.0, 0.0 } -- Put this to the same as the size to offset it from the surface
+    },
+    Rotation = {
+      Type = "ConstantRotation",
+      RotationAxis = { 0.0, 0.0, 1.0 },
+      RotationRate = 0.05
+    }
+  },
+  Renderable = {
+    Type = "RenderableSphereImageLocal",
+    Size =  3396190.0, -- The size you want the sphere to be (radius) in metres
+    Segments = 25,
+    Texture = asset.resource("mars.jpg"),
+    Orientation = "Both"
+  },
+  GUI = {
+    Name = "CompareMars",
+    Path = "/SunCompare"
+  }
+}
+
+local Sphere3 = {
+  Identifier = "CompareMarEarthMidpoint",
+  -- Parent = sun_asset.Sun.Identifier,
+  Transform = {
+    -- A GlobeTranslation puts the sphere on the location on the Sun you want it to be located.
+    Translation = {
+      Type = "StaticTranslation",
+      Position = {755000000.0, 0.0, 0.0 } -- Put this to the same as the size to offset it from the surface
+    }
+  },
+  Renderable = {
+    Type = "RenderableSphereImageLocal",
+    Size =  1.0, -- The size you want the sphere to be (radius) in metres
+    Segments = 25,
+    Texture = asset.resource("mars.jpg"),
+    Orientation = "Both"
+    
+  },
+  GUI = {
+    Name = "CompareMarEarthMidpoint",
+    Path = "/SunCompare"
+  }
+}
+
+
+asset.onInitialize(function()
+  openspace.addSceneGraphNode(Sphere1)
+  openspace.addSceneGraphNode(Sphere2)
+  openspace.addSceneGraphNode(Sphere3)
+end)
+
+asset.onDeinitialize(function()
+  openspace.removeSceneGraphNode(Sphere1)
+  openspace.removeSceneGraphNode(Sphere2)
+  openspace.removeSceneGraphNode(Sphere3)
+end)
+
+asset.export(Sphere1)
+asset.export(Sphere2)
+asset.export(Sphere3)
+
+asset.meta = {
+  Name = "Compare Earth to Mars",
+  Version = "1.0",
+  Description = [[Scale model of the planets placed near the Sun]],
+  Author = "Hari Nandakumar, Sri Sathya Sai Space Theatre",}
