@@ -1,0 +1,42 @@
+-- 1. Define the renderable
+local EarthClock = {
+  Type = "ScreenSpaceText",
+  Identifier = "EarthClock",
+  Name = "Earth Clock",
+  Text = "UTC: Calculating...",
+  FontSize = 50,
+  UseRadiusAzimuthElevation = true,
+  RadiusAzimuthElevation = {0.9, 0.785, -0.30},
+  Color = {1.0, 0.4, 0.2}
+}
+
+-- 2. Define the update function GLOBALLY so OpenSpace can find it later.
+-- We use a unique name (MyDate_Update) to avoid conflicts with other scripts.
+function MyDate_Update()
+    -- Get time
+    local timeString = openspace.time.SPICE()
+    local yearString = string.sub(timeString, 1, 4)
+
+    -- Safety check: Ensure the renderable exists before setting text
+    if openspace.hasProperty("ScreenSpace.EarthClock.Text") then
+        openspace.setPropertyValueSingle("ScreenSpace.EarthClock.Text", yearString)
+    end
+end
+
+asset.onInitialize(function()
+  openspace.addScreenSpaceRenderable(EarthClock)
+  
+  -- Run once immediately
+  MyDate_Update()
+
+  -- 3. Register the script.
+  openspace.registerRepeatedScript("UpdateEarthClock", "MyDate_Update()")
+end)
+
+asset.onDeinitialize(function()
+  -- Remove the script
+  openspace.removeRepeatedScript("UpdateEarthClock")
+  
+  -- Remove the renderable
+  openspace.removeScreenSpaceRenderable("EarthClock")
+end)
