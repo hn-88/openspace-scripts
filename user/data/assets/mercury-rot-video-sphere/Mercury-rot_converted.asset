@@ -1,0 +1,36 @@
+local Sphere = {
+  Identifier = "Mercury-rot_converted",
+  BoundingSphere = 0,
+  Renderable = {
+    Type = "RenderableVideoSphere",
+    Size = 1000.0,
+    Segments = 80,
+    Video = asset.resource("Mercury-rot_converted.mp4"),
+    Orientation = "Both",
+	MirrorTexture = true,
+	Enabled = false
+  },
+  GUI = {
+    Name = "Mercury-rot converted",
+    Path = "/Videos/Spheres"
+  }
+}
+
+
+asset.onInitialize(function()
+  openspace.addSceneGraphNode(Sphere)
+end)
+
+asset.onDeinitialize(function()
+  openspace.removeSceneGraphNode(Sphere)
+end)
+
+asset.export(Sphere)
+
+
+
+asset.meta = {
+  Name = "Mercury-rot converted",
+  Description = "Video Playback Sphere for Mercury-rot converted",
+  Author = "Built with the Tau Immersive OpenSpace Video Encoder"
+}
