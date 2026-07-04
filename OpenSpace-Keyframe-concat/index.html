@@ -18,8 +18,8 @@
 			//These are variables to customize for your own dome as needed/desired:
 			//wherever your content will be on your local machine
 			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
-			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings";
-			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings');
+			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings/";
+			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings/');
 			
 			//These are functional variables that are needed for the interface to work
 			//resetting the openspace interface:
@@ -97,8 +97,8 @@
                     let prevKeyframeTimeObj = await keyframetimes[index - 1];  // Wait for previous keyframe time to resolve
                     let currKeyframeTimeObj = await keyframetimes[index - 2];  // Wait for previous-2 keyframe time to resolve
 
-                    let prevKeyframeTime = prevKeyframeTimeObj[1];  // Accessing the value from the object
-                    let currKeyframeTime = currKeyframeTimeObj[1];  // Accessing the value from the object
+                    let prevKeyframeTime = prevKeyframeTimeObj;  // Accessing the value from the object - in OpenSpace 0.22.x, we don't need this
+                    let currKeyframeTime = currKeyframeTimeObj;  // Accessing the value from the object
 
                     // Calculate the time differences
                     let timeSimdiff = currSimTime - prevSimTime;
@@ -350,8 +350,8 @@
 				})
 			}
 			
-			var connectToOpenSpace = () => {
-				var host = document.getElementById('ipaddress').value;
+			var connectToOpenSpace = (host) => {
+                host = host || document.getElementById('ipaddress').value;
 				var api = window.openspaceApi(host, 4682);
 				api.onDisconnect(() => {
 					console.log("disconnected");
@@ -484,16 +484,16 @@ async function restoreExistingKeyframes() {
 
 async function loadKeyframes() {
   const keyframes = await openspace.keyframeRecording.keyframes();
-  recording = keyframes["1"]; // Assign to global variable
+  recording = keyframes; // Assign to global variable - In OpenSpace 0.22.x, keyframes["1"] is not needed
   console.log('Keyframes loaded:', Object.keys(recording).length);
 }
 
 // Function to count camera keyframes
 async function countCameraKeyframes() {
   // Load keyframes if not already loaded
-  if (!recording) {
+  //if (!recording) {
     await loadKeyframes();
-  }
+  //}
   
   let cameraCount = 0;
   let scriptCount = 0;
@@ -589,9 +589,9 @@ function easeInOutQuart(t) {
 
 async function saveAllKeyframesWithInterpolation() {
   // Load keyframes from OpenSpace
-  if (!recording) {
+  //if (!recording) {
     await loadKeyframes();
-  }
+  //}
   
   // Show progress bar
   document.getElementById('progressContainer').style.display = 'block';
@@ -618,12 +618,13 @@ async function saveAllKeyframesWithInterpolation() {
   console.log(`Found ${cameraKeyframes.length} camera keyframes`);
   
   let allLines = [];
-  let line = "OpenSpace_record/playback02.00A"; 
+  let line = "OpenSpace_record/playback03.00A"; 
   allLines.push(line);
 
   const stepsPerKeyframe = 100;
   
   // Process each pair of consecutive camera keyframes
+  //console.log(`cameraKeyframes.length = ${cameraKeyframes.length}`);
   for (let i = 0; i < cameraKeyframes.length; i++) {
     const currentKF = cameraKeyframes[i];
     
@@ -639,14 +640,14 @@ async function saveAllKeyframesWithInterpolation() {
       currentKF.timestamp,
 	  currentKF.simtime,
       pos[0], pos[1], pos[2],
-      rot[1], rot[2], rot[3], rot[0],
+      rot[0], rot[1], rot[2], rot[3],
 	  scale,
       "F",
       anchor
     ].join(" ");
     
     allLines.push(line);
-    
+    //console.log(`i=${i}, cameraKeyframes.length=${cameraKeyframes.length}, will interpolate: ${i < cameraKeyframes.length - 1}`);
     // If there's a next keyframe, interpolate between current and next
     if (i < cameraKeyframes.length - 1) {
       const nextKF = cameraKeyframes[i + 1];
@@ -664,6 +665,7 @@ async function saveAllKeyframesWithInterpolation() {
       // Interpolate 100 frames between current and next
 	  let tinterp = 0.0;
       for (let step = 1; step <= stepsPerKeyframe; step++) {
+        //if (step === 1) console.log(`  starting interpolation steps for i=${i}`);
         let t = step / (stepsPerKeyframe + 1);
         
         // Get the selected easing type
@@ -704,7 +706,7 @@ async function saveAllKeyframesWithInterpolation() {
 		  interpTimestamp,
           interpSimtime,          
           interpPos[0], interpPos[1], interpPos[2],
-          interpRot[1], interpRot[2], interpRot[3], interpRot[0],
+          interpRot[0], interpRot[1], interpRot[2], interpRot[3],
 		  interpScale,
           "F",
           anchor
@@ -789,7 +791,7 @@ async function saveAllKeyframes() {
   }
   
   let lines = [];
-  let line = "OpenSpace_record/playback02.00A"; 
+  let line = "OpenSpace_record/playback03.00A"; 
   lines.push(line);
 
   for (let sequenceId in recording) {
@@ -810,7 +812,7 @@ async function saveAllKeyframes() {
         timestamp,
         j2000,
         pos[0], pos[1], pos[2],
-        rot[1], rot[2], rot[3], rot[0],
+        rot[0], rot[1], rot[2], rot[3],
         scale,
         "F",
         anchor
@@ -866,47 +868,33 @@ async function saveAllKeyframes() {
 
 
   async function testKeyframesStructure() {
-    // Thanks to Claude.ai for fleshing out the syntax below.
-  try {
-    const keyframes = await openspace.keyframeRecording.keyframes();
-    
-    console.log('=== KEYFRAMES STRUCTURE ===');
-    
-    // Iterate through each recording (only one sequence in this case)
-    for (let recordingId in keyframes) {
-      console.log(`\n=== Recording ${recordingId} ===`);
-      const recording = keyframes[recordingId];
-      
-      // Count keyframes in this recording
-      const keyframeCount = Object.keys(recording).length;
-      console.log(`Total keyframes in recording: ${keyframeCount}`);
-      
-      // Iterate through each keyframe in the recording
-      for (let keyframeId in recording) {
-        const keyframe = recording[keyframeId];
-        console.log(`\n  Keyframe ${keyframeId}:`);
-        console.log(`    SimulationTime: ${keyframe.SimulationTime}`);
-        console.log(`    Timestamp: ${keyframe.Timestamp}`);
-        
-        if (keyframe.Camera) {
-          console.log(`    Type: Camera keyframe`);
-          console.log(`    FocusNode: ${keyframe.Camera.FocusNode}`);
-          console.log(`    Position:`, keyframe.Camera.Position);
-          console.log(`    Rotation:`, keyframe.Camera.Rotation);
-          console.log(`    Scale: ${keyframe.Camera.Scale}`);
+      try {
+        const keyframes = await openspace.keyframeRecording.keyframes();
+        console.log('=== KEYFRAMES STRUCTURE (flat) ===');
+        console.log(`Total keyframes: ${Object.keys(keyframes).length}`);
+
+        for (let id in keyframes) {
+          const kf = keyframes[id];
+          console.log(`\n  Keyframe ${id}:`);
+          console.log(`    SimulationTime: ${kf.SimulationTime}`);
+          console.log(`    Timestamp: ${kf.Timestamp}`);
+
+          if (kf.Camera) {
+            console.log(`    Type: Camera`);
+            console.log(`    FocusNode:`, kf.Camera.FocusNode);
+            console.log(`    Position:`, kf.Camera.Position);
+            console.log(`    Rotation:`, kf.Camera.Rotation);
+            console.log(`    Scale:`, kf.Camera.Scale);
+          }
+          if (kf.Script) {
+            console.log(`    Type: Script`);
+            console.log(`    Script:`, kf.Script);
+          }
         }
-        
-        if (keyframe.Script) {
-          console.log(`    Type: Script keyframe`);
-          console.log(`    Script: ${keyframe.Script}`);
-        }
+      } catch (error) {
+        console.error('Error getting keyframes:', error);
       }
-    }
-    
-  } catch (error) {
-    console.error('Error getting keyframes:', error);
   }
-}
 
 async function interpolatebetweenkeyframes() {
   const userConfirmed = confirm('Interpolating between keyframes - this can take a while if you have large time intervals.');
@@ -945,7 +933,7 @@ async function interpolatebetweenkeyframes() {
 }
 
 async function saveSequence() {
-  // testKeyframesStructure();
+   //testKeyframesStructure();
   
   try {
     const now = new Date();
