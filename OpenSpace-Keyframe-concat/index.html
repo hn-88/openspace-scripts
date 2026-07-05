@@ -1,5 +1,4 @@
 <html>
-	<!-- require this so that apostrophes don't become all weird. -->
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<head>
 			
@@ -7,7 +6,10 @@
 		<link rel="stylesheet" type="text/css" href="main2.css">
 		<script type="text/javascript" src="openspace-api.js"></script>
 		<script type="text/javascript">
-            // Hari Nandakumar Sep-Oct 2025            
+            /////////////////
+            // Hari Nandakumar Sep-Oct 2025 
+            // updated for OpenSpace 0.22.x in July 2026   
+            /////////////////        
             // Modified from the code by    			
             //by Jeff Nee at NASA's Museum & Informal Education Alliance at JPL
 			//Last updated: May 2024
@@ -17,9 +19,9 @@
 			
 			//These are variables to customize for your own dome as needed/desired:
 			//wherever your content will be on your local machine
-			var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
-			var recordingsPath = "/home/sssvv/OpenSpace/user/recordings/";
-			alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings/');
+			//var contentPath = "/home/sssvv/Downloads/openspace-scripts-main/OpenSpace-ConstellationsTonight_draft/";
+			//var recordingsPath = "/home/sssvv/OpenSpace/user/recordings/";
+			//alert('recordingsPath is set to "' + recordingsPath + '".\nThis folder needs to be writable by OpenSpace for this program to work.\n You will need to edit the html file for doing this.\n On Windows, the path should have / instead of backslash - for example,\n D:/OpenSpace/user/recordings/');
 			
 			//These are functional variables that are needed for the interface to work
 			//resetting the openspace interface:
@@ -406,7 +408,9 @@
         Optional - Enter the prefix (max 16 chars) of the osrectxt to be saved - a timestamp and file extension will be suffixed automatically.
       </label>
 </div>      
+<!--
 <div><button id="SaveSeq" onclick="saveSequence()">Save Sequence as OSRECTXT</button><span id="saveSeqStatus" style="margin-left:10px; color:#eee;">Sequence saving status. This would be saved without ease in/out.</span></div>
+-->
 <div style="margin:10px 10px 10px 10px; color:#eee; background:#333">
 <h4 >Ease in/out options</h4>
 <div>
@@ -950,10 +954,10 @@ async function saveSequence() {
     const nameprefix = document.getElementById('nameprefix');
     const prefix = nameprefix.value.trim() !== '' ? nameprefix.value : 'concat';
     const filename = `${prefix}-${timestamp}.osrectxt`;
-    const recfilefullpath = recordingsPath + filename;
+    // const recfilefullpath = recordingsPath + filename;
 
     // If saveSequence is async
-    await openspace.keyframeRecording.saveSequence(recfilefullpath);
+    // await openspace.keyframeRecording.saveSequence(recfilefullpath);
 
     document.getElementById('saveSeqStatus').textContent =
       'Sequence saved as ' + recfilefullpath;
